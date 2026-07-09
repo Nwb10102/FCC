@@ -1,0 +1,14 @@
+{
+    "name": "Gamplay10102.Spritemaker.Editor.Tests",
+    "references": [
+        "Gamplay10102.Spritemaker.Editor",
+        "Gamplay10102.Spritemaker"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

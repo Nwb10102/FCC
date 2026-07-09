@@ -35,6 +35,12 @@ public class Player_move : MonoBehaviour
 
 
     #endregion
+    #region 외부 제어용 변수
+
+    [HideInInspector]
+    public bool isMovementLocked; // Player_Combat 등 외부 시스템이 공격 중 이동을 멈출 때 사용.
+
+    #endregion
     #region 컴포넌트 변수
     Rigidbody2D rigid;
     Vector2 moveInput;
@@ -79,6 +85,11 @@ public class Player_move : MonoBehaviour
 
     // 부드러운 움직임 함수.
     void SmoothMove() {
+        if (isMovementLocked) {
+            rigid.linearVelocity = new Vector2(0f, rigid.linearVelocityY);
+            return;
+        }
+
         rigid.AddForce(moveInput, ForceMode2D.Impulse);
         // Debug.Log(moveInput);
 

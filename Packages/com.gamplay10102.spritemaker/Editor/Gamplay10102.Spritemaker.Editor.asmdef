@@ -1,0 +1,10 @@
+{
+    "name": "Gamplay10102.Spritemaker.Editor",
+    "references": [
+      "Gamplay10102.Spritemaker"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

@@ -32,6 +32,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "Attack",
+                    "type": "Button",
+                    "id": "59ff19fc-94bb-455a-8ac5-3f2fce1f7a6c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -188,15 +197,37 @@
                     "action": "Move",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "b7b946d5-be10-4b7a-a3a6-f341c5759726",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1d004540-c690-44cc-8898-969e857770df",
+                    "path": "<XInputController>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
         {
-            "name": "Ui_Control",
+            "name": "Ui",
             "id": "73b04a82-4925-4e4d-8e13-c5b342177013",
             "actions": [
                 {
-                    "name": "New action",
+                    "name": "NextDialogue",
                     "type": "Button",
                     "id": "14215ca3-1f0f-445e-8707-c96a2f87508f",
                     "expectedControlType": "",
@@ -208,12 +239,23 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "60b2d23b-7cd7-4d66-a5d3-495e0ac67a45",
-                    "path": "",
+                    "id": "80e9fba4-2702-42fb-86e3-e6cbb9395047",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "New action",
+                    "action": "NextDialogue",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f004c57b-f00e-4537-9c86-5c050e6a87bf",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NextDialogue",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
