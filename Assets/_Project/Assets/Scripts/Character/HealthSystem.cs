@@ -3,11 +3,14 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
     int baseHealth = 100;
-    int currentHealth = 100;
+    public int currentHealth = 100;
     float invincibleTime = 2f;
 
     bool isInvincible;
     float invincibleTimer;
+
+    public int MaxHealth => baseHealth;
+    public int CurrentHealth => currentHealth;
 
     void Start() {
         currentHealth = baseHealth;

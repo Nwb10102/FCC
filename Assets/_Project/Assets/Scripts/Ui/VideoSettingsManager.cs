@@ -3,40 +3,44 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class VideoSettingsManager : MonoBehaviour
-{
+public class VideoSettingsManager : MonoBehaviour {
+    #region ì¸ìŠ¤í™í„° ë³€ìˆ˜
+
     public TMP_Dropdown resolutionDropdown;
     public Toggle fullscreenToggle;
     public Toggle vSyncToggle;
 
-    private Resolution[] resolutions;
+    #endregion
+    #region ì»´í¬ë„ŒíŠ¸ ë³€ìˆ˜
 
-    void Start()
-    {
-        // ¸ğ´ÏÅÍ Áö¿ø ÇØ»óµµ ¸ñ·Ï °¡Á®¿À±â
+    Resolution[] resolutions;
+
+    #endregion
+    #region ìœ ë‹ˆí‹° ë¼ì´í”„ ì‚¬ì´í´
+
+    void Start() {
+        // ì‚¬ìš© ê°€ëŠ¥í•œ í•´ìƒë„ ëª©ë¡ ê°€ì ¸ì˜¤ê¸°.
         resolutions = Screen.resolutions;
         resolutionDropdown.ClearOptions();
 
         List<string> options = new List<string>();
         int currentResolutionIndex = 0;
 
-        for (int i = 0; i < resolutions.Length; i++)
-        {
-            // 1920 x 1080 (60Hz) ÇüÅÂ·Î ¸¸µé±â
+        for (int i = 0; i < resolutions.Length; i++) {
+            // "1920 x 1080 (60Hz)" í˜•íƒœ ë¬¸ìì—´ë¡œ ë§Œë“¤ê¸°.
             string option = resolutions[i].width + " x " + resolutions[i].height + " (" + resolutions[i].refreshRateRatio.value.ToString("0") + "Hz)";
             options.Add(option);
 
             if (resolutions[i].width == Screen.currentResolution.width &&
-                resolutions[i].height == Screen.currentResolution.height)
-            {
+                resolutions[i].height == Screen.currentResolution.height) {
                 currentResolutionIndex = i;
             }
         }
 
-        // µå·Ó´Ù¿î¿¡ ¸ñ·Ï ³Ö±â
+        // ë“œë¡­ë‹¤ìš´ì— ì˜µì…˜ ì±„ì›Œë„£ê¸°.
         resolutionDropdown.AddOptions(options);
 
-        // ÀúÀåµÈ ¼³Á¤ ºÒ·¯¿À±â
+        // ì €ì¥ëœ ì„¤ì •ê°’ ë¶ˆëŸ¬ì˜¤ê¸°.
         int savedResIndex = PlayerPrefs.GetInt("ResolutionIndex", currentResolutionIndex);
         resolutionDropdown.value = savedResIndex;
         resolutionDropdown.RefreshShownValue();
@@ -45,25 +49,28 @@ public class VideoSettingsManager : MonoBehaviour
         vSyncToggle.isOn = QualitySettings.vSyncCount > 0;
     }
 
-    // ÇØ»óµµ º¯°æ ÇÔ¼ö
-    public void SetResolution(int resolutionIndex)
-    {
+    #endregion
+    #region ë¹„ë””ì˜¤ ì„¤ì • ê´€ë ¨ í•¨ìˆ˜
+
+    // í•´ìƒë„ ì„¤ì •.
+    public void SetResolution(int resolutionIndex) {
         if (resolutionIndex >= resolutions.Length) return;
+
         Resolution resolution = resolutions[resolutionIndex];
         Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
         PlayerPrefs.SetInt("ResolutionIndex", resolutionIndex);
     }
 
-    // ÀüÃ¼È­¸é Åä±Û ÇÔ¼ö
-    public void SetFullscreen(bool isFullscreen)
-    {
+    // ì „ì²´í™”ë©´ í† ê¸€.
+    public void SetFullscreen(bool isFullscreen) {
         Screen.fullScreen = isFullscreen;
     }
 
-    // ¼öÁ÷µ¿±âÈ­ Åä±Û ÇÔ¼ö
-    public void SetVSync(bool isVSync)
-    {
+    // ìˆ˜ì§ ë™ê¸°í™” í† ê¸€.
+    public void SetVSync(bool isVSync) {
         QualitySettings.vSyncCount = isVSync ? 1 : 0;
         PlayerPrefs.SetInt("VSyncState", isVSync ? 1 : 0);
     }
+
+    #endregion
 }

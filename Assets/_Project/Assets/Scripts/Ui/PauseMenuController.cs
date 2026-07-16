@@ -2,89 +2,87 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
-public class PauseMenuController : MonoBehaviour
-{
+public class PauseMenuController : MonoBehaviour {
+    #region ì¸ìŠ¤í™í„° ë³€ìˆ˜
+
     [Header("UI Panels")]
-    public GameObject mainPanel;      // ¸ŞÀÎ ÀÏ½ÃÁ¤Áö Ã¢
-    public GameObject settingsPanel;  // ¼³Á¤ Ã¢
-    public GameObject videoSubPanel;  // ºñµğ¿À ¼³Á¤ »ó¼¼ Ã¢
+    public GameObject mainPanel; // ì¼ì‹œì •ì§€ ë©”ì¸ì°½.
+    public GameObject settingsPanel; // ì„¤ì •ì°½.
+    public GameObject videoSubPanel; // ì„¤ì •ì°½ ì•ˆì˜ ë¹„ë””ì˜¤ ì„¤ì • í•˜ìœ„ì°½.
 
-    private InputAction escapeAction;
+    #endregion
+    #region ì»´í¬ë„ŒíŠ¸ ë³€ìˆ˜
 
-    private void Awake()
-    {
-        Debug.unityLogger.filterLogType = LogType.Error;
+    InputAction escapeAction;
+
+    #endregion
+    #region ìœ ë‹ˆí‹° ë¼ì´í”„ ì‚¬ì´í´
+
+    void Awake() {
+        Debug.unityLogger.filterLogType = LogType.Error; // ë‹¤ë¥¸ ì‹œìŠ¤í…œì—ì„œ ì˜¬ë¼ì˜¤ëŠ” ë¶ˆí•„ìš”í•œ ë¡œê·¸ ì–µì œ.
         escapeAction = new InputAction(binding: "<Keyboard>/escape");
     }
 
-    private void OnEnable() { escapeAction.Enable(); }
-    private void OnDisable() { escapeAction.Disable(); }
+    void OnEnable() { escapeAction.Enable(); }
+    void OnDisable() { escapeAction.Disable(); }
 
-    void Update()
-    {
-        // ESC Å°°¡ ´­·ÈÀ» ¶§ »óÅÂ¸¦ È®ÀÎÇÏ°í ¼ø¼­´ë·Î Ã³¸®
-        if (escapeAction.triggered)
-        {
+    void Update() {
+        if (!escapeAction.triggered) return;
 
-            // ºñµğ¿À »ó¼¼ Ã¢(videoSubPanel)
-            if (videoSubPanel != null && videoSubPanel.activeSelf)
-            {
-                videoSubPanel.SetActive(false);
-            }
-            // ¼³Á¤Ã¢(settingsPanel)
-            else if (settingsPanel != null && settingsPanel.activeSelf)
-            {
-                CloseSettings();
-            }
-            // ¸ŞÀÎÃ¢(mainPanel)
-            else if (mainPanel != null && mainPanel.activeSelf)
-            {
-                Resume();
-            }
-            // ¾Æ¹«°Íµµ ¾È ÄÑÁ® ÀÖ´Ù¸é
-            else
-            {
-                Pause();
-            }
+        // ì—´ë ¤ìˆëŠ” ì°½ ì¤‘ ê°€ì¥ ì•ˆìª½(ë¹„ë””ì˜¤ ì„¤ì •)ë¶€í„° ìˆœì„œëŒ€ë¡œ ë‹«ëŠ”ë‹¤.
+        if (videoSubPanel != null && videoSubPanel.activeSelf) {
+            videoSubPanel.SetActive(false);
+        }
+        else if (settingsPanel != null && settingsPanel.activeSelf) {
+            CloseSettings();
+        }
+        else if (mainPanel != null && mainPanel.activeSelf) {
+            Resume();
+        }
+        else {
+            Pause();
         }
     }
 
-    // °ÔÀÓÀ¸·Î µ¹¾Æ°¡±â
-    public void Resume()
-    {
+    #endregion
+    #region íŒ¨ë„ ì œì–´ í•¨ìˆ˜
+
+    // ê²Œì„ìœ¼ë¡œ ëŒì•„ê°€ê¸°.
+    public void Resume() {
         if (mainPanel != null) mainPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
-        if (videoSubPanel != null) videoSubPanel.SetActive(false); 
-        Time.timeScale = 1f; // ½Ã°£ Èå¸§ Á¤»óÈ­
+        if (videoSubPanel != null) videoSubPanel.SetActive(false);
+        Time.timeScale = 1f; // ì‹œê°„ íë¦„ ì¬ê°œ.
     }
 
-    // ÀÏ½ÃÁ¤Áö ÄÑ±â (°ÔÀÓ Áß ESC ´­·¶À» ¶§)
-    public void Pause()
-    {
+    // ì¼ì‹œì •ì§€ ì¼œê¸° (ê²Œì„ ì¤‘ ESCë¥¼ ëˆŒë €ì„ ë•Œ).
+    public void Pause() {
         if (mainPanel != null) mainPanel.SetActive(true);
-        Time.timeScale = 0f; // ½Ã°£ Á¤Áö
+        Time.timeScale = 0f; // ì‹œê°„ ì •ì§€.
     }
 
-    // [¸ŞÀÎÃ¢¿¡¼­ 'Options(Setting)' ¹öÆ°À» ´­·¶À» ¶§ ½ÇÇà
-    public void GoToOptions()
-    {
-        if (mainPanel != null) mainPanel.SetActive(false); // ¸ŞÀÎÃ¢ ¼û±â±â
-        if (settingsPanel != null) settingsPanel.SetActive(true); // ¼³Á¤Ã¢ ¶ç¿ì±â
-        if (videoSubPanel != null) videoSubPanel.SetActive(false); // [¹ö±× ¼öÁ¤] ¼³Á¤Ã¢ ¿­ ¶§´Â ºñµğ¿À Ã¢ÀÌ ¹«Á¶°Ç ²¨Á®ÀÖµµ·Ï ÃÊ±âÈ­
+    // [ì¼ì‹œì •ì§€ì°½ì˜ 'Options(Setting)' ë²„íŠ¼] í´ë¦­ ì‹œ í˜¸ì¶œ.
+    public void GoToOptions() {
+        if (mainPanel != null) mainPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(true);
+        if (videoSubPanel != null) videoSubPanel.SetActive(false); // ì„¤ì •ì°½ì„ ì²˜ìŒ ì—´ ë•ŒëŠ” ë¹„ë””ì˜¤ í•˜ìœ„ì°½ì„ ë‹«íŒ ìƒíƒœë¡œ ì´ˆê¸°í™”.
     }
 
-    // [³»ºÎ ±â´É] ¼³Á¤Ã¢¿¡¼­ ºüÁ®³ª¿Ã ¶§ ½ÇÇà
-    private void CloseSettings()
-    {
-        if (settingsPanel != null) settingsPanel.SetActive(false); // ¼³Á¤Ã¢ ¼û±â±â
-        if (videoSubPanel != null) videoSubPanel.SetActive(false); // [¹ö±× ¼öÁ¤] ¼³Á¤Ã¢ÀÌ ´İÈú ¶§ ºñµğ¿À Ã¢µµ È®½ÇÇÏ°Ô °°ÀÌ ²ô±â
-        if (mainPanel != null) mainPanel.SetActive(true); // ´Ù½Ã ¸ŞÀÎÃ¢ ¶ç¿ì±â
+    // [ì„¤ì •ì°½ì˜ 'ë’¤ë¡œê°€ê¸°' ë²„íŠ¼] í´ë¦­ ì‹œ í˜¸ì¶œ.
+    void CloseSettings() {
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (videoSubPanel != null) videoSubPanel.SetActive(false); // ì„¤ì •ì°½ì„ ë‹«ì„ ë•Œ ë¹„ë””ì˜¤ í•˜ìœ„ì°½ë„ ê°™ì´ í™•ì‹¤íˆ ë‹«ì•„ì¤€ë‹¤.
+        if (mainPanel != null) mainPanel.SetActive(true);
     }
 
-    // [¹öÆ° Àü¿ë] ¸ŞÀÎ¸Ş´º·Î ³ª°¡±â
-    public void GoToMainMenu()
-    {
+    #endregion
+    #region ì”¬ ì „í™˜ ê´€ë ¨ í•¨ìˆ˜
+
+    // [ë²„íŠ¼ ì—°ê²°] ë©”ì¸ ë©”ë‰´ë¡œ ë‚˜ê°€ê¸°.
+    public void GoToMainMenu() {
         Time.timeScale = 1f;
         SceneManager.LoadScene("Main_menu");
     }
+
+    #endregion
 }

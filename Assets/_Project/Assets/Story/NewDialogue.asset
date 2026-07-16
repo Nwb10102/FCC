@@ -13,4 +13,8 @@ MonoBehaviour:
   m_Name: NewDialogue
   m_EditorClassIdentifier: Assembly-CSharp::DialogueScript
   Entries: []
-  Markup: 
+  Markup: "\uC548\uB155! \uC5EC\uAE30\uAE4C\uC9C0 \uB4E4\uC5B4\uC624\uB2E4\uB2C8
+    \uC6A9\uAC10\uD55C\uAC78.\n---\n<wave>\uC774 \uC601\uC5ED\uC5D0 \uB4E4\uC5B4\uC624\uBA74
+    \uB300\uD654\uAC00 \uC2DC\uC791\uB3FC.</wave>\n---\n\uB300\uD654\uAC00 \uB05D\uB098\uBA74
+    \uB2E4\uC2DC \uC6C0\uC9C1\uC77C \uC218 \uC788\uC5B4. \uC88B\uC740 \uC5EC\uD589
+    \uB418\uAE38!"

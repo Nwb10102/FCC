@@ -3,46 +3,58 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class MainMenuController : MonoBehaviour {
+    #region ì¸ìŠ¤í™í„° ë³€ìˆ˜
+
     [Header("UI Panels")]
-    public GameObject settingsPanel; // 1´Ü°è¿¡¼­ °¡Á®¿Â ¼³Á¤Ã¢ ÇÁ¸®ÆÕ
+    public GameObject settingsPanel; // ë©”ì¸ ë©”ë‰´ì—ì„œ ì—´ë¦¬ëŠ” ì„¤ì •ì°½.
 
-    private InputAction escapeAction;
+    #endregion
+    #region ì»´í¬ë„ŒíŠ¸ ë³€ìˆ˜
 
-    private void Awake() {
+    InputAction escapeAction;
+
+    #endregion
+    #region ìœ ë‹ˆí‹° ë¼ì´í”„ ì‚¬ì´í´
+
+    void Awake() {
         escapeAction = new InputAction(binding: "<Keyboard>/escape");
     }
 
-    private void OnEnable() { escapeAction.Enable(); }
-    private void OnDisable() { escapeAction.Disable(); }
+    void OnEnable() { escapeAction.Enable(); }
+    void OnDisable() { escapeAction.Disable(); }
 
     void Update() {
-        // ¸ŞÀÎ ¸Ş´º¿¡¼­µµ ESC¸¦ ´©¸£¸é ÄÑÁ®ÀÖ´Â ¼³Á¤Ã¢ÀÌ ´İÈ÷µµ·Ï ¸¸µì´Ï´Ù.
-        if (escapeAction.triggered) {
-            if (settingsPanel != null && settingsPanel.activeSelf) {
-                CloseSettings();
-            }
+        // ë©”ì¸ ë©”ë‰´ì—ì„œ ESCë¥¼ ëˆ„ë¥´ë©´ ì—´ë ¤ìˆëŠ” ì„¤ì •ì°½ì„ ë‹«ì•„ì¤€ë‹¤.
+        if (escapeAction.triggered && settingsPanel != null && settingsPanel.activeSelf) {
+            CloseSettings();
         }
     }
 
-    // 1. [Setting] ¹öÆ°À» ´­·¶À» ¶§ ½ÇÇà
+    #endregion
+    #region ì„¤ì •ì°½ ê´€ë ¨ í•¨ìˆ˜
+
+    // [Setting] ë²„íŠ¼ í´ë¦­ ì‹œ í˜¸ì¶œ.
     public void OpenSettings() {
-        if (settingsPanel != null) settingsPanel.SetActive(true); // ¼³Á¤Ã¢ ÄÑ±â
+        if (settingsPanel != null) settingsPanel.SetActive(true);
     }
 
-    // [³»ºÎ ±â´É] ¼³Á¤Ã¢ ´İ±â
-    private void CloseSettings() {
-        if (settingsPanel != null) settingsPanel.SetActive(false); // ¼³Á¤Ã¢ ¼û±â±â
+    void CloseSettings() {
+        if (settingsPanel != null) settingsPanel.SetActive(false);
     }
 
-    // 2. [Game Start] ¹öÆ°À» ´­·¶À» ¶§ ½ÇÇà
+    #endregion
+    #region ì”¬ ì „í™˜ ê´€ë ¨ í•¨ìˆ˜
+
+    // [Game Start] ë²„íŠ¼ í´ë¦­ ì‹œ í˜¸ì¶œ.
     public void StartGame() {
-        // "master_scene"À¸·Î ÀÌµ¿ÇÕ´Ï´Ù. (¾À ÀÌ¸§ÀÌ ´Ù¸£¸é ¿©±â¸¦ ¼öÁ¤ÇÏ¼¼¿ä)
-        SceneManager.LoadScene("master_scene");
+        SceneManager.LoadScene("master_scene"); // ì”¬ ì´ë¦„ì´ ë°”ë€Œë©´ ì—¬ê¸°ë¥¼ ìˆ˜ì •.
     }
 
-    // 3. [Exit] ¹öÆ°À» ´­·¶À» ¶§ ½ÇÇà
+    // [Exit] ë²„íŠ¼ í´ë¦­ ì‹œ í˜¸ì¶œ.
     public void ExitGame() {
-        Debug.Log("°ÔÀÓ Á¾·á!");
-        Application.Quit(); // ½ÇÁ¦ ºôµåµÈ °ÔÀÓÆÄÀÏ¿¡¼­ °ÔÀÓÀ» ²¨Áİ´Ï´Ù.
+        Debug.Log("ê²Œì„ ì¢…ë£Œ!");
+        Application.Quit(); // ì—ë””í„°ì—ì„œëŠ” ë™ì‘í•˜ì§€ ì•Šê³  ë¹Œë“œì—ì„œë§Œ ì‹¤ì œë¡œ ì¢…ë£Œë¨.
     }
+
+    #endregion
 }

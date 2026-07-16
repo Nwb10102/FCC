@@ -51,6 +51,10 @@ public class Player_move : MonoBehaviour
     void Awake() {
         rigid = GetComponent<Rigidbody2D>();
         rigid.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        // IsFacingRight의 초기값이 실제 스프라이트/스케일의 방향과 어긋나면
+        // 처음 반대 방향키를 눌렀을 때 방향 전환이 씹히는 문제가 있어, 시작 시 실제 상태와 동기화한다.
+        IsFacingRight = transform.localScale.x > 0f;
     }
 
     void OnMove(InputValue value) {

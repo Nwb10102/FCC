@@ -1,0 +1,98 @@
+using System;
+using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+/// <summary>
+/// 플레이어가 이 영역(Collider2D 트리거)에 들어오면 대화를 재생합니다.
+/// DialogueScript(여러 칸)를 우선 재생하고, 없으면 단발 text를 한 칸으로 재생합니다.
+/// CutSceneManager의 트리거 골격 + DialogueStep의 대사 재생 로직을 합친 컴포넌트입니다.
+/// </summary>
+public class DialogueTriggerZone : MonoBehaviour
+{
+    [SerializeField] private DialogueView view;
+    [SerializeField] private DialogueScript script;            // 우선 재생 (여러 칸/화자/초상화)
+    [SerializeField, TextArea(2, 5)] private string text;      // script가 없을 때 쓸 단발 대사
+    [SerializeField] private string speaker;                   // 단발 대사의 화자 (선택)
+    [SerializeField] private bool hideOnFinish = true;         // 끝나면 대화창 끄기
+    [SerializeField] private InputActionReference advanceAction; // 다음/스킵 입력 (Client ▸ Ui_Control ▸ NextDialogue)
+
+    [SerializeField] private bool playOnce = true;
+    [SerializeField] private string playerTag = "Player";
+    [SerializeField] private bool lockPlayerMovement = true;   // 대화 중 플레이어 이동 잠금 (Player_move.isMovementLocked 재사용)
+
+    public static event Action OnDialogueStart;
+    public static event Action OnDialogueEnd;
+
+    private bool _played;
+    private static bool _isPlaying;
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!other.CompareTag(playerTag)) return;
+        if (playOnce && _played) return;
+        if (_isPlaying) return;
+        StartCoroutine(RunDialogue(other));
+    }
+
+    private IEnumerator RunDialogue(Collider2D playerCollider)
+    {
+        DialogueEntry[] entries = BuildEntries();
+        if (view == null || entries.Length == 0) yield break;
+
+        _isPlaying = true;
+        _played = true;
+        OnDialogueStart?.Invoke();
+
+        Player_move playerMove = lockPlayerMovement ? playerCollider.GetComponent<Player_move>() : null;
+        if (playerMove != null) playerMove.isMovementLocked = true;
+
+        InputAction action = advanceAction != null ? advanceAction.action : null;
+        bool enabledByUs = action != null && !action.enabled;
+        if (enabledByUs) action.Enable();
+
+        foreach (DialogueEntry entry in entries)
+        {
+            view.Show(entry);
+            yield return null;   // 표시 직후 같은 프레임의 입력은 무시
+
+            while (true)
+            {
+                if (action != null && action.WasPerformedThisFrame())
+                {
+                    if (view.IsTyping) view.CompleteReveal();   // 출력 중 → 즉시 완성
+                    else break;                                 // 완성됨 → 다음 칸으로
+                }
+                yield return null;
+            }
+        }
+
+        if (enabledByUs) action.Disable();
+        if (hideOnFinish) view.Hide();
+
+        if (playerMove != null) playerMove.isMovementLocked = false;
+
+        _isPlaying = false;
+        OnDialogueEnd?.Invoke();
+    }
+
+    private DialogueEntry[] BuildEntries()
+    {
+        if (script != null) return script.GetEntries();
+        if (!string.IsNullOrEmpty(text))
+            return new[] { new DialogueEntry { Speaker = speaker, Portrait = null, Markup = text } };
+        return Array.Empty<DialogueEntry>();
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+        if (!TryGetComponent<Collider2D>(out var col)) return;
+
+        Gizmos.color = new Color(1f, 0.6f, 0.2f, 0.3f);
+        Gizmos.DrawCube(col.bounds.center, col.bounds.size);
+        Gizmos.color = new Color(1f, 0.6f, 0.2f, 0.8f);
+        Gizmos.DrawWireCube(col.bounds.center, col.bounds.size);
+    }
+#endif
+}
