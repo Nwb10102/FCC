@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Player_move))]
 public class Player_Combat : MonoBehaviour {
     #region 인스펙터 변수
 
@@ -23,12 +22,10 @@ public class Player_Combat : MonoBehaviour {
     #endregion
     #region 컴포넌트 변수
 
-    Player_move moveSystem;
     AttackState state = AttackState.Idle;
     float stateTimer;
     SpriteRenderer rangeIndicator;
-
-    static Sprite ringSprite;
+    Vector3 currentAttackWorldPos; // 공격이 시작된 순간의 월드 좌표. 판정 도중 플레이어가 움직여도 이 위치에 고정된다.
 
     #endregion
 
@@ -37,7 +34,6 @@ public class Player_Combat : MonoBehaviour {
     #region 유니티 라이프 사이클
 
     void Awake() {
-        moveSystem = GetComponent<Player_move>();
         BuildRangeIndicator();
     }
 
@@ -68,7 +64,7 @@ public class Player_Combat : MonoBehaviour {
     void StartWindup() {
         state = AttackState.Windup;
         stateTimer = attackDelay;
-        moveSystem.isMovementLocked = true; // 선딜레이 동안 제자리에서 공격.
+        currentAttackWorldPos = attackPoint.position; // 공격 시작 순간의 위치를 고정.
         ShowRangeIndicator();
     }
 
@@ -83,7 +79,7 @@ public class Player_Combat : MonoBehaviour {
     void DealDamage() {
         if (attackPoint == null) return;
 
-        Collider2D hit = Physics2D.OverlapCircle(attackPoint.position, attackRange, enemyLayer);
+        Collider2D hit = Physics2D.OverlapCircle(currentAttackWorldPos, attackRange, enemyLayer);
         if (hit == null) return;
 
         Health enemyHealth = hit.GetComponentInParent<Health>();
@@ -95,7 +91,6 @@ public class Player_Combat : MonoBehaviour {
     void StartCooldown() {
         state = AttackState.Cooldown;
         stateTimer = attackCooldown;
-        moveSystem.isMovementLocked = false;
         HideRangeIndicator();
     }
 
@@ -120,54 +115,17 @@ public class Player_Combat : MonoBehaviour {
     void BuildRangeIndicator() {
         if (attackPoint == null) return;
 
-        GameObject obj = new GameObject("AttackRangeIndicator");
-        obj.transform.SetParent(attackPoint);
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-        obj.transform.localScale = new Vector3(attackRange * 2f, attackRange * 2f, 1f);
-
-        rangeIndicator = obj.AddComponent<SpriteRenderer>();
-        rangeIndicator.sprite = GetRingSprite();
-        rangeIndicator.color = rangeIndicatorColor;
-        rangeIndicator.sortingOrder = 50;
-        obj.SetActive(false); // 선딜레이가 시작될 때만 보여준다.
+        rangeIndicator = AttackRangeIndicator.Create(attackRange, rangeIndicatorColor);
     }
 
     void ShowRangeIndicator() {
-        if (rangeIndicator != null) rangeIndicator.gameObject.SetActive(true);
+        if (rangeIndicator == null) return;
+        rangeIndicator.transform.position = currentAttackWorldPos;
+        rangeIndicator.gameObject.SetActive(true);
     }
 
     void HideRangeIndicator() {
         if (rangeIndicator != null) rangeIndicator.gameObject.SetActive(false);
-    }
-
-    static Sprite GetRingSprite() {
-        if (ringSprite == null) ringSprite = CreateRingSprite(64, 0.15f);
-        return ringSprite;
-    }
-
-    // 가장자리만 칠해진 원형 텍스처를 만들어 별도 이미지 에셋 없이 판정 범위 링을 그린다.
-    static Sprite CreateRingSprite(int resolution, float thicknessRatio) {
-        Texture2D texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
-        texture.filterMode = FilterMode.Bilinear;
-        texture.wrapMode = TextureWrapMode.Clamp;
-
-        Vector2 center = new Vector2(resolution - 1, resolution - 1) * 0.5f;
-        float outerRadius = resolution * 0.5f;
-        float innerRadius = outerRadius * (1f - thicknessRatio);
-
-        for (int y = 0; y < resolution; y++) {
-            for (int x = 0; x < resolution; x++) {
-                float dist = Vector2.Distance(new Vector2(x, y), center);
-                bool onRing = dist <= outerRadius && dist >= innerRadius;
-                texture.SetPixel(x, y, onRing ? Color.white : Color.clear);
-            }
-        }
-        texture.Apply();
-
-        // pixelsPerUnit == resolution: 스케일 1일 때 스프라이트 크기가 정확히 1 월드 유닛이 되어,
-        // transform.localScale로 지름을 그대로 지정할 수 있다.
-        return Sprite.Create(texture, new Rect(0f, 0f, resolution, resolution), new Vector2(0.5f, 0.5f), resolution);
     }
 
     #endregion

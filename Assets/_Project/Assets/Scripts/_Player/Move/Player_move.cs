@@ -33,6 +33,9 @@ public class Player_move : MonoBehaviour
     public float coyoteDuration = 0.15f; // 코요테 점프 허용 시간 (초)
     public float coyoteCounter; // 남은 코요테 시간을 체크할 타이머
 
+    [Header("Jump Buffer")]
+    public float jumpBufferDuration = 0.15f; // 착지 전에 미리 누른 점프 입력을 기억해두는 시간 (초)
+    private float jumpBufferCounter; // 남은 점프 버퍼 시간을 체크할 타이머
 
     #endregion
     #region 외부 제어용 변수
@@ -66,17 +69,21 @@ public class Player_move : MonoBehaviour
             TurnCheck();
         }
 
-        isGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
-
-        coyoteJumpTime(); // 코요테 
-
         SaveLoadSystem(); // 저장 & 불러오기
     }
 
     void FixedUpdate() {
+        // 접지 판정/코요테타임/점프버퍼는 물리 힘이 실제로 적용되는 시점(FixedUpdate)과 맞춰야 한다.
+        // Rigidbody2D의 Interpolation 때문에 Update()에서 읽는 transform 위치는 화면 표시용으로
+        // 보간된 값이라 실제 물리 위치와 어긋날 수 있고, 이 오차가 점프 이륙/착지 순간의
+        // isGrounded 판정을 한두 프레임 틀리게 만들어 점프가 살짝 걸리는 느낌으로 체감됐다.
+        isGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
+
+        coyoteJumpTime(); // 코요테
+        JumpBufferTime(); // 점프 버퍼 (착지 전 미리 누른 점프 입력 처리)
+
         // immediateMove();
         SmoothMove();
-
     }
 
     #endregion
@@ -111,18 +118,37 @@ public class Player_move : MonoBehaviour
         if (isGrounded) {
             coyoteCounter = coyoteDuration;
         } else {
-            coyoteCounter -= Time.deltaTime;
+            coyoteCounter -= Time.fixedDeltaTime;
         }
     }
 
     void OnJump(InputValue value) {
-        if (value.isPressed && (coyoteCounter > 0f)) {
-            isGrounded = false;
-            rigid.linearVelocity = new Vector2(rigid.linearVelocityX, 0f); // 기존 속도를 초기화하여 키 씹힘 방지.
+        if (!value.isPressed) return;
 
-            // rigid.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-            rigid.AddForceY(jumpForce, ForceMode2D.Impulse);
-            coyoteCounter = 0f; // 타이머를 0으로 만들어 이단 점프 방지.
+        if (coyoteCounter > 0f) {
+            ExecuteJump();
+        } else {
+            jumpBufferCounter = jumpBufferDuration; // 공중에서 미리 누른 점프 입력을 버퍼에 저장, 착지 시 바로 점프.
+        }
+    }
+
+    void ExecuteJump() {
+        isGrounded = false;
+        rigid.linearVelocity = new Vector2(rigid.linearVelocityX, 0f); // 기존 속도를 초기화하여 키 씹힘 방지.
+
+        // rigid.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        rigid.AddForceY(jumpForce, ForceMode2D.Impulse);
+        coyoteCounter = 0f; // 타이머를 0으로 만들어 이단 점프 방지.
+        jumpBufferCounter = 0f; // 버퍼 소모.
+    }
+
+    void JumpBufferTime() {
+        if (jumpBufferCounter <= 0f) return;
+
+        jumpBufferCounter -= Time.fixedDeltaTime;
+
+        if (isGrounded) {
+            ExecuteJump();
         }
     }
 
@@ -155,17 +181,24 @@ public class Player_move : MonoBehaviour
     }
 
     private void Turn(){
-        // float yRotationVar = transform.rotation.y;
-
         IsFacingRight = !IsFacingRight;
-    
+        ApplyFacing();
+    }
+
+    // 현재 IsFacingRight 상태를 현재 모드(회전/스케일)에 맞게 트랜스폼에 반영.
+    // 모드가 전환되는 순간(카메라 영역 진입/이탈)에도 호출해서 반대 축에 남아있는
+    // 이전 모드의 값(스케일 -1 또는 회전 180)이 겹쳐 방향이 어긋나는 것을 방지한다.
+    public void ApplyFacing() {
         float yRotation = IsFacingRight ? 0f : 180f;
         float xScale = IsFacingRight ? 1f : -1f;
 
         if (useFacingRotation) {
             Vector3 rotator = new Vector3(transform.rotation.eulerAngles.x, yRotation, transform.rotation.eulerAngles.z);
             transform.rotation = Quaternion.Euler(rotator);
-            return;
+
+            // 스케일 모드에서 넘어왔을 때 남아있을 수 있는 음수 스케일을 중립화.
+            Vector3 neutralScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            transform.localScale = neutralScale;
         } else {
             transform.rotation = Quaternion.Euler(0f, 0f, 0f);
             Vector3 newScale = new Vector3(xScale, transform.localScale.y, transform.localScale.z);

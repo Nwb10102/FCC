@@ -3,6 +3,16 @@ using Unity.Cinemachine;
 using System.Collections;
 
 public class Player_AreaCameraController : MonoBehaviour {
+    public enum CameraAreaType {
+        [InspectorName("플레이어 위치 기반")] PlayerFollow,
+        [InspectorName("객체 고정")] FixedTarget
+    }
+
+    [Header("Camera Area Type")]
+    public CameraAreaType areaType = CameraAreaType.PlayerFollow;
+    [Tooltip("areaType이 '객체 고정'일 때 카메라가 고정될 대상")]
+    public Transform fixedTarget;
+
     [Header("Camera Settings")]
     public float X_TargetOffset = 0f;
     public float Y_TargetOffset = 0f;
@@ -28,6 +38,7 @@ public class Player_AreaCameraController : MonoBehaviour {
 
     private Player_move _playerMove;
     private bool _originalPlayerFacingRotation;
+    private Transform _originalFollow;
 
     private void Awake() {
         if (targetCamera == null) {
@@ -59,6 +70,7 @@ public class Player_AreaCameraController : MonoBehaviour {
         _originalOffset = _positionComposer.TargetOffset;
         _originalDamping = _positionComposer.Damping;
         _originalLensSize = targetCamera.Lens.OrthographicSize;
+        _originalFollow = targetCamera.Follow;
     }
 
     private void OnTriggerEnter2D(Collider2D other) {
@@ -67,6 +79,15 @@ public class Player_AreaCameraController : MonoBehaviour {
         if (useFacingRotation && _playerMove != null) {
             _originalPlayerFacingRotation = _playerMove.useFacingRotation;
             _playerMove.useFacingRotation = true;
+            _playerMove.ApplyFacing(); // 모드 전환 즉시 트랜스폼을 새 모드에 동기화 (이전 모드의 스케일/회전 잔여값 제거)
+        }
+
+        if (areaType == CameraAreaType.FixedTarget) {
+            if (fixedTarget != null) {
+                targetCamera.Follow = fixedTarget;
+            } else {
+                Debug.LogWarning($"[{name}] areaType이 '객체 고정'이지만 fixedTarget이 비어있습니다.");
+            }
         }
 
         Vector3 targetOffset = new Vector3(X_TargetOffset, Y_TargetOffset, _originalOffset.z);
@@ -79,7 +100,11 @@ public class Player_AreaCameraController : MonoBehaviour {
 
         if (useFacingRotation && _playerMove != null) {
             _playerMove.useFacingRotation = _originalPlayerFacingRotation;
-            _playerMove.useFacingRotation = false;
+            _playerMove.ApplyFacing(); // 모드 전환 즉시 트랜스폼을 새 모드에 동기화 (이전 모드의 스케일/회전 잔여값 제거)
+        }
+
+        if (areaType == CameraAreaType.FixedTarget) {
+            targetCamera.Follow = _originalFollow;
         }
 
         StartTransition(_originalOffset, _originalLensSize, _originalDamping.x);

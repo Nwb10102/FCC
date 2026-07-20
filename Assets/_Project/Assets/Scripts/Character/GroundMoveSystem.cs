@@ -126,7 +126,8 @@ public class GroundMoveSystem : MonoBehaviour {
         if (isChasing) {
             playerTransform = hit.transform;
             state = MoveState.Chase;
-            facingDirection = playerTransform.position.x >= transform.position.x ? 1 : -1;
+            int directionToPlayer = playerTransform.position.x >= transform.position.x ? 1 : -1;
+            SetFacingDirection(directionToPlayer);
         }
         else {
             state = MoveState.Patrol;
@@ -134,7 +135,14 @@ public class GroundMoveSystem : MonoBehaviour {
     }
 
     void Flip() {
-        facingDirection *= -1;
+        SetFacingDirection(facingDirection * -1);
+    }
+
+    // 스케일 x값의 부호를 뒤집어 좌우를 바라보게 한다. 추격 중 플레이어를 바라볼 때도 사용.
+    void SetFacingDirection(int direction) {
+        if (facingDirection == direction) return;
+
+        facingDirection = direction;
         Vector3 newScale = transform.localScale;
         newScale.x = Mathf.Abs(newScale.x) * facingDirection;
         transform.localScale = newScale;
