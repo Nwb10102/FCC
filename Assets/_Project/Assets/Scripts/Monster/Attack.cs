@@ -82,13 +82,13 @@ public class Attack : MonoBehaviour {
         StartCooldown();
     }
 
-    void DealDamage() {
+void DealDamage() {
         // 선딜레이가 끝난 시점에 플레이어가 범위 안에 있는지 다시 확인.
         Collider2D hit = Physics2D.OverlapCircle(currentAttackWorldPos, attackRange, playerLayer);
         if (hit == null) return;
 
         if (hit.TryGetComponent(out Health playerHealth)) {
-            playerHealth.TakeDamage(attackDamage);
+            playerHealth.TakeDamage(attackDamage, currentAttackWorldPos);
         }
     }
 

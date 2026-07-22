@@ -35,6 +35,7 @@ public class GroundMoveSystem : MonoBehaviour {
     #region 컴포넌트 변수
 
     Rigidbody2D rigid;
+    float knockbackTimer; // 0보다 크면 넉백 중 - 일반 이동 로직을 건너뛰어 물리 힘이 그대로 유지되게 한다.
     MoveState state;
     int facingDirection = 1; // 1: 오른쪽, -1: 왼쪽
 
@@ -76,6 +77,11 @@ public class GroundMoveSystem : MonoBehaviour {
     #region 몬스터 움직임 관련 함수
 
     void Move() {
+        if (knockbackTimer > 0f) {
+            knockbackTimer -= Time.fixedDeltaTime;
+            return;
+        }
+
         if (isMovementLocked) {
             rigid.linearVelocity = new Vector2(0f, rigid.linearVelocityY);
             return;
@@ -99,6 +105,12 @@ public class GroundMoveSystem : MonoBehaviour {
         else if (rigid.linearVelocityX <= maxSpeed * (-1)) {
             rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocityY);
         }
+    }
+
+    public void ApplyKnockback(Vector2 force, float duration = 0.15f) {
+        knockbackTimer = duration;
+        rigid.linearVelocity = Vector2.zero;
+        rigid.AddForce(force, ForceMode2D.Impulse);
     }
 
     void CheckGrounded() {

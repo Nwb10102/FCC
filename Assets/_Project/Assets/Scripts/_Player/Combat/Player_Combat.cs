@@ -76,7 +76,7 @@ public class Player_Combat : MonoBehaviour {
         StartCooldown();
     }
 
-    void DealDamage() {
+void DealDamage() {
         if (attackPoint == null) return;
 
         Collider2D hit = Physics2D.OverlapCircle(currentAttackWorldPos, attackRange, enemyLayer);
@@ -84,7 +84,7 @@ public class Player_Combat : MonoBehaviour {
 
         Health enemyHealth = hit.GetComponentInParent<Health>();
         if (enemyHealth != null) {
-            enemyHealth.TakeDamage(attackDamage);
+            enemyHealth.TakeDamage(attackDamage, currentAttackWorldPos);
         }
     }
 

@@ -47,6 +47,7 @@ public class Player_move : MonoBehaviour
     #region 컴포넌트 변수
     Rigidbody2D rigid;
     Vector2 moveInput;
+    float knockbackTimer; // 0보다 크면 넉백 중 - 일반 이동 로직을 건너뛰어 물리 힘이 그대로 유지되게 한다.
 
     #endregion
 
@@ -96,6 +97,11 @@ public class Player_move : MonoBehaviour
 
     // 부드러운 움직임 함수.
     void SmoothMove() {
+        if (knockbackTimer > 0f) {
+            knockbackTimer -= Time.fixedDeltaTime;
+            return;
+        }
+
         if (isMovementLocked) {
             rigid.linearVelocity = new Vector2(0f, rigid.linearVelocityY);
             return;
@@ -111,6 +117,12 @@ public class Player_move : MonoBehaviour
         else if (rigid.linearVelocityX <= maxSpeed * (-1)) {
             rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocityY);
         }
+    }
+
+    public void ApplyKnockback(Vector2 force, float duration = 0.15f) {
+        knockbackTimer = duration;
+        rigid.linearVelocity = Vector2.zero;
+        rigid.AddForce(force, ForceMode2D.Impulse);
     }
 
 // --TODO(박찬) : 점프 구현 (고요테 점프로 구현할 예정)
