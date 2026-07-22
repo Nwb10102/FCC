@@ -7,6 +7,7 @@ public class CutSceneManager : MonoBehaviour
 {
     [SerializeField] private bool playOnce = true;
     [SerializeField] private string playerTag = "Player";
+    [SerializeField] private string objectiveId;                // 비어있지 않으면 컷신 종료 시 해당 목표를 완료 처리
 
     public static event Action OnCutSceneStart;
     public static event Action OnCutSceneEnd;
@@ -45,6 +46,8 @@ public class CutSceneManager : MonoBehaviour
 
         _isPlaying = false;
         OnCutSceneEnd?.Invoke();
+
+        if (!string.IsNullOrEmpty(objectiveId)) ObjectiveManager.Instance?.CompleteObjective(objectiveId);
     }
 
 #if UNITY_EDITOR

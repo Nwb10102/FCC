@@ -20,6 +20,7 @@ public class DialogueTriggerZone : MonoBehaviour
     [SerializeField] private bool playOnce = true;
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private bool lockPlayerMovement = true;   // 대화 중 플레이어 이동 잠금 (Player_move.isMovementLocked 재사용)
+    [SerializeField] private string objectiveId;                // 비어있지 않으면 대화 종료 시 해당 목표를 완료 처리
 
     public static event Action OnDialogueStart;
     public static event Action OnDialogueEnd;
@@ -74,6 +75,8 @@ public class DialogueTriggerZone : MonoBehaviour
 
         _isPlaying = false;
         OnDialogueEnd?.Invoke();
+
+        if (!string.IsNullOrEmpty(objectiveId)) ObjectiveManager.Instance?.CompleteObjective(objectiveId);
     }
 
     private DialogueEntry[] BuildEntries()
