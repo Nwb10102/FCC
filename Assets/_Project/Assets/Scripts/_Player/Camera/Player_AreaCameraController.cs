@@ -92,7 +92,8 @@ public class Player_AreaCameraController : MonoBehaviour {
 
         Vector3 targetOffset = new Vector3(X_TargetOffset, Y_TargetOffset, _originalOffset.z);
         float lensSize = LensSize > 0 ? LensSize : _originalLensSize;
-        StartTransition(targetOffset, lensSize, Damping);
+        Vector3 targetDamping = new Vector3(Damping, Damping, _originalDamping.z); // Z는 카메라 거리축이라 원본 유지
+        StartTransition(targetOffset, lensSize, targetDamping);
     }
 
     private void OnTriggerExit2D(Collider2D other) {
@@ -107,19 +108,19 @@ public class Player_AreaCameraController : MonoBehaviour {
             targetCamera.Follow = _originalFollow;
         }
 
-        StartTransition(_originalOffset, _originalLensSize, _originalDamping.x);
+        StartTransition(_originalOffset, _originalLensSize, _originalDamping);
     }
 
-    private void StartTransition(Vector3 targetOffset, float lensSize, float targetDamping) {
+    private void StartTransition(Vector3 targetOffset, float lensSize, Vector3 targetDamping) {
         if (_transitionCoroutine != null)
             StopCoroutine(_transitionCoroutine);
 
         _transitionCoroutine = StartCoroutine(TransitionRoutine(targetOffset, lensSize, targetDamping));
     }
 
-    private IEnumerator TransitionRoutine(Vector3 targetOffset, float targetLensSize, float targetDamping) {
+    private IEnumerator TransitionRoutine(Vector3 targetOffset, float targetLensSize, Vector3 targetDamping) {
         Vector3 startOffset = _positionComposer.TargetOffset;
-        float startDamping = _positionComposer.Damping.x;
+        Vector3 startDamping = _positionComposer.Damping;
         float startLensSize = targetCamera.Lens.OrthographicSize;
         float elapsed = 0f;
 
@@ -128,8 +129,7 @@ public class Player_AreaCameraController : MonoBehaviour {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / TransitionDuration);
 
             _positionComposer.TargetOffset = Vector3.Lerp(startOffset, targetOffset, t);
-            float dampValue = Mathf.Lerp(startDamping, targetDamping, t);
-            _positionComposer.Damping = new Vector3(dampValue, dampValue, dampValue);
+            _positionComposer.Damping = Vector3.Lerp(startDamping, targetDamping, t);
 
             var lens = targetCamera.Lens;
             lens.OrthographicSize = Mathf.Lerp(startLensSize, targetLensSize, t);
@@ -139,7 +139,7 @@ public class Player_AreaCameraController : MonoBehaviour {
         }
 
         _positionComposer.TargetOffset = targetOffset;
-        _positionComposer.Damping = new Vector3(targetDamping, targetDamping, targetDamping);
+        _positionComposer.Damping = targetDamping;
 
         var finalLens = targetCamera.Lens;
         finalLens.OrthographicSize = targetLensSize;
