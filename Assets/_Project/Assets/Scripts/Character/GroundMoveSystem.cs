@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -11,6 +12,13 @@ public class GroundMoveSystem : MonoBehaviour {
     [Header("플레이어 감지")]
     public float detectionRange = 5f; // 플레이어를 감지하는 반경.
     public LayerMask playerLayer; // 플레이어 레이어.
+    public float stopDistanceToPlayer = 0.9f; // 추격 중 플레이어와 x축 거리가 이 값 안으로 들어오면 정지. 도착 판정이 없으면 여러 마리가 플레이어의 같은 좌표를 목표로 삼아 서로 겹친다.
+
+    [Header("동족 간격")]
+    public LayerMask allyLayer; // 다른 몬스터 레이어. **비워두면 자기 레이어를 자동으로 쓴다.**
+    public float separationDistance = 1.1f; // 이 거리 안에 동족이 있으면 그 방향으로는 밀어붙이지 않는다. 몸통 콜라이더 폭보다 약간 크게 잡을 것.
+    public float overlapEscapeDistance = 0.6f; // 이만큼 파고든 동족이 있으면 이동을 접고 반대쪽으로 빠져나온다.
+    public float separationSpeed = 1.5f; // 겹침에서 빠져나올 때의 속도.
 
     [Header("Ground Check")]
     public Transform groundCheck; // **몬스터 발밑에 빈 오브젝트를 만드세요.**
@@ -43,6 +51,14 @@ public class GroundMoveSystem : MonoBehaviour {
     bool isFacingWall;
     bool isFacingLedge;
     bool isChasing;
+    bool isPlayerInStopDistance; // 추격 중 플레이어에 충분히 붙었는지.
+
+    bool isAllyOnRight;
+    bool isAllyOnLeft;
+    int allyEscapeDirection; // 0이 아니면 그 방향으로 겹침 탈출 중.
+
+    ContactFilter2D allyFilter;
+    readonly List<Collider2D> allyBuffer = new(); // 매 프레임 새로 할당하지 않도록 재사용한다.
 
     Transform playerTransform;
 
@@ -55,15 +71,24 @@ public class GroundMoveSystem : MonoBehaviour {
     void Awake() {
         rigid = GetComponent<Rigidbody2D>();
         rigid.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        // 인스펙터에서 비워두면 자기 레이어를 동족으로 본다. 씬 세팅을 깜빡했을 때 간격 유지가 조용히 죽는 걸 막는다.
+        if (allyLayer.value == 0) allyLayer = 1 << gameObject.layer;
+
+        allyFilter.useTriggers = false; // Renderer 에 달린 트리거 캡슐까지 잡히면 노이즈라 몸통 콜라이더만 본다.
+        allyFilter.SetLayerMask(allyLayer);
     }
 
     void Update() {
         CheckGrounded();
         CheckWall();
         CheckLedge();
+        CheckAlly();
         DetectPlayer();
 
-        if (state == MoveState.Patrol && (isFacingWall || isFacingLedge)) {
+        // 앞을 막은 동족도 벽·낭떠러지와 같은 방향 전환 사유로 본다.
+        // 단 양옆이 다 막혔으면 매 프레임 뒤집혀 떨리므로 그냥 멈추게 둔다.
+        if (state == MoveState.Patrol && (isFacingWall || isFacingLedge || (IsAllyAhead() && !IsAllyBehind()))) {
             Flip();
         }
     }
@@ -91,19 +116,34 @@ public class GroundMoveSystem : MonoBehaviour {
             return;
         }
 
+        // 이미 파고든 동족이 있으면 이동보다 탈출이 먼저다. (에디터에서 같은 자리에 복제해 둔 경우 등)
+        if (allyEscapeDirection != 0) {
+            rigid.linearVelocity = new Vector2(allyEscapeDirection * separationSpeed, rigid.linearVelocityY);
+            return;
+        }
+
+        // 앞을 막은 동족을 계속 밀면 간격 없이 뭉쳐 겹쳐 보인다. 밀지 말고 뒤에서 기다리게 한다.
+        if (IsAllyAhead()) {
+            rigid.linearVelocity = new Vector2(0f, rigid.linearVelocityY);
+            return;
+        }
+
         // 추격 중 낭떠러지 앞에서는 정지 (추락 방지)
         if (state == MoveState.Chase && isFacingLedge) {
             return;
         }
 
+        // 플레이어에 붙었으면 더 파고들지 않는다. 이게 없으면 감지 범위 안의 몬스터 전부가 플레이어의 같은 좌표로 몰린다.
+        if (state == MoveState.Chase && isPlayerInStopDistance) {
+            rigid.linearVelocity = new Vector2(0f, rigid.linearVelocityY);
+            return;
+        }
+
         rigid.AddForce(new Vector2(facingDirection * speed, 0f), ForceMode2D.Impulse);
 
-        // 최고 속도 관리.
-        if (rigid.linearVelocityX >= maxSpeed) {
-            rigid.linearVelocity = new Vector2(maxSpeed, rigid.linearVelocityY);
-        }
-        else if (rigid.linearVelocityX <= maxSpeed * (-1)) {
-            rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocityY);
+        // 최고 속도 관리. velocity 를 통째로 대입하면 낙하·점프 중인 y축 속도까지 같이 덮어쓰게 되므로 x축만 손댄다.
+        if (Mathf.Abs(rigid.linearVelocityX) > maxSpeed) {
+            rigid.linearVelocityX = Mathf.Sign(rigid.linearVelocityX) * maxSpeed;
         }
     }
 
@@ -131,6 +171,51 @@ public class GroundMoveSystem : MonoBehaviour {
         isFacingLedge = !Physics2D.Raycast(ledgeCheck.position, Vector2.down, ledgeCheckDistance, groundLayer);
     }
 
+    // 주변 동족의 좌우 위치를 파악한다.
+    // 콜라이더끼리는 물리 엔진이 막아주지만, 서로를 인식하지 못하면 목표 지점(플레이어 좌표·진행 방향)이 같은 몬스터들이
+    // 어깨를 맞댄 덩어리로 뭉쳐 버린다. 간격이 0이라 보기에는 겹친 것과 다름없으니 애초에 밀어붙이지 않게 막는다.
+    void CheckAlly() {
+        isAllyOnRight = false;
+        isAllyOnLeft = false;
+        allyEscapeDirection = 0;
+
+        if (separationDistance <= 0f) return;
+
+        int count = Physics2D.OverlapCircle(rigid.position, separationDistance, allyFilter, allyBuffer);
+        float nearestOverlap = float.MaxValue;
+
+        for (int i = 0; i < count; i++) {
+            Rigidbody2D otherBody = allyBuffer[i].attachedRigidbody;
+            if (otherBody == null || otherBody == rigid) continue; // 자기 자신(자식 콜라이더 포함)은 건너뛴다.
+
+            float deltaX = otherBody.position.x - rigid.position.x;
+            if (deltaX >= 0f) isAllyOnRight = true;
+            else isAllyOnLeft = true;
+
+            // 가장 깊게 파고든 상대를 기준으로 탈출 방향을 정한다.
+            float distance = Mathf.Abs(deltaX);
+            if (distance >= overlapEscapeDistance || distance >= nearestOverlap) continue;
+
+            nearestOverlap = distance;
+            if (distance > 0.01f) {
+                allyEscapeDirection = deltaX > 0f ? -1 : 1;
+            }
+            else {
+                // 에디터에서 Ctrl+D 로 복제하면 좌표가 완전히 같아 방향을 정할 수 없다. 오브젝트 고유 id 로 편을 갈라 서로 반대로 흩어지게 한다.
+                allyEscapeDirection = GetEntityId() < otherBody.GetEntityId() ? -1 : 1;
+            }
+        }
+    }
+
+    // 좌우 감지 결과를 진행 방향에 맞춰 그때그때 읽는다. Flip() 이나 추격으로 facingDirection 이 바뀐 뒤에도 값이 맞도록.
+    bool IsAllyAhead() {
+        return facingDirection > 0 ? isAllyOnRight : isAllyOnLeft;
+    }
+
+    bool IsAllyBehind() {
+        return facingDirection > 0 ? isAllyOnLeft : isAllyOnRight;
+    }
+
     void DetectPlayer() {
         Collider2D hit = Physics2D.OverlapCircle(transform.position, detectionRange, playerLayer);
         isChasing = hit != null;
@@ -140,9 +225,11 @@ public class GroundMoveSystem : MonoBehaviour {
             state = MoveState.Chase;
             int directionToPlayer = playerTransform.position.x >= transform.position.x ? 1 : -1;
             SetFacingDirection(directionToPlayer);
+            isPlayerInStopDistance = Mathf.Abs(playerTransform.position.x - transform.position.x) <= stopDistanceToPlayer;
         }
         else {
             state = MoveState.Patrol;
+            isPlayerInStopDistance = false;
         }
     }
 
@@ -179,6 +266,11 @@ public class GroundMoveSystem : MonoBehaviour {
 
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        if (separationDistance > 0f) {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, separationDistance);
+        }
     }
 
     #endregion

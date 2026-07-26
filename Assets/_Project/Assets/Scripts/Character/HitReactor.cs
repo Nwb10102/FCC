@@ -19,6 +19,7 @@ public class HitReactor : MonoBehaviour {
 
     Health health;
     GroundMoveSystem groundMove;
+    FlyMoveSystem flyMove;
     Player_move playerMove;
 
     #endregion
@@ -27,6 +28,7 @@ public class HitReactor : MonoBehaviour {
     void Awake() {
         health = GetComponent<Health>();
         groundMove = GetComponent<GroundMoveSystem>();
+        flyMove = GetComponent<FlyMoveSystem>();
         playerMove = GetComponent<Player_move>();
     }
 
@@ -73,6 +75,7 @@ public class HitReactor : MonoBehaviour {
         Vector2 force = hitDir * knockbackForce;
 
         if (groundMove != null) groundMove.ApplyKnockback(force);
+        if (flyMove != null) flyMove.ApplyKnockback(force);
         if (playerMove != null) playerMove.ApplyKnockback(force);
     }
 
