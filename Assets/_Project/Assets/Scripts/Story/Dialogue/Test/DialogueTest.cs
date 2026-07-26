@@ -1,86 +1,30 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// DialogueEffect의 마크업 태그(&lt;shake&gt; / &lt;wave&gt; / &lt;rainbow&gt; / &lt;round&gt; / &lt;speed&gt; …)를
+/// 눈으로 확인하기 위한 테스트 컴포넌트. 대화창(DialogueView)을 거치지 않고 본문 엔진만 직접 굴립니다.
+/// 확인할 문구는 인스펙터의 Texts 리스트에 직접 적습니다.
+/// </summary>
 public class DialogueTest : MonoBehaviour
 {
     [SerializeField] private DialogueEffect _dialogueEffect;
 
-    // 다음/스킵 입력 (Client ▸ Ui_Control ▸ NextDialogue)
+    // 다음/스킵 입력 (Client ▸ Ui ▸ NextDialogue)
     [SerializeField] private InputActionReference _advanceAction;
 
-    // 인스펙터에 DialogueScript 에셋을 넣으면 그걸 재생합니다.
-    // 비워두면 아래 _markupExamples(마크업 문자열)로 동작합니다.
-    [SerializeField] private DialogueScript[] _scripts;
+    // 확인할 문구 목록. 한 칸이 한 화면이며, 5초마다 자동으로 다음 칸으로 넘어갑니다.
+    [SerializeField, TextArea(2, 6)] private string[] _texts;
 
-    // 에셋 없이 바로 테스트하기 위한 내장 마크업 예시
-    private readonly string[] _markupExamples =
-    {
-        "안녕하세요, 저는 광대입니다.",
-
-        "<shake>조심해! 폭발한다!!</shake>",
-
-        "<shake a=8 s=50>으아아아아!!!</shake>",
-
-        "<bold>이것은 매우 중요한 정보입니다.</bold>",
-
-        "<wave>바람이 살랑살랑 불어온다.</wave>",
-
-        "<wave a=8 s=8>폭풍이 몰아친다!!</wave>",
-
-        "<rainbow>화려한 마법사가 나타났다!</rainbow>",
-
-        "<rainbow><wave>마법의 파도가 밀려온다!</wave></rainbow>",
-
-        "<rainbow><shake>위험한 마법이 발동됐다!</shake></rainbow>",
-
-        "<shake><wave><rainbow>대혼돈!!</rainbow></wave></shake>",
-
-        // 여러 줄 + 줄마다 다른 강도
-        "<wave a=2 s=1.5>부드럽게...</wave>\n" +
-        "<wave a=6 s=6>점점 격렬하게!</wave>\n" +
-        "<shake a=10 s=50>대폭발!!!!</shake>",
-
-        "<round>빙글빙글 돌아간다~</round>",
-
-        "<round r=8 s=6>어지러워!!</round>",
-
-        "<round><rainbow>회오리 마법!</rainbow></round>",
-
-        // 줄마다 다른 출력 속도
-        "<speed=6>느리게... 천천히...</speed>\n" +
-        "<speed=40>그리고 갑자기 빠르게!!</speed>",
-    };
+    [SerializeField] private float _cycleSeconds = 5f;
 
     private int _index;
-    private readonly WaitForSeconds _wait = new(5f);
-
-    // 모든 소스를 "페이지(화면)" 단위로 펼친 목록
-    private readonly List<string> _pages = new();
 
     private void Start()
     {
-        BuildPages();
         ShowCurrent();
         StartCoroutine(CycleTexts());
-    }
-
-    private void BuildPages()
-    {
-        _pages.Clear();
-        if (_scripts != null && _scripts.Length > 0)
-        {
-            foreach (DialogueScript script in _scripts)
-            {
-                if (script == null) continue;
-                _pages.AddRange(script.GetPages());
-            }
-        }
-        else
-        {
-            _pages.AddRange(_markupExamples);
-        }
     }
 
     private void OnEnable()
@@ -105,24 +49,25 @@ public class DialogueTest : MonoBehaviour
 
     private IEnumerator CycleTexts()
     {
+        var wait = new WaitForSeconds(_cycleSeconds);
         while (true)
         {
-            yield return _wait;
+            yield return wait;
             Advance();
         }
     }
 
     private void Advance()
     {
-        if (_pages.Count == 0) return;
-        _index = (_index + 1) % _pages.Count;
+        if (_texts == null || _texts.Length == 0) return;
+        _index = (_index + 1) % _texts.Length;
         ShowCurrent();
     }
 
     private void ShowCurrent()
     {
-        if (_pages.Count == 0) return;
-        _dialogueEffect.SetText(_pages[_index]);
-        Debug.Log($"[DialogueTest] ({_index + 1}/{_pages.Count})");
+        if (_texts == null || _texts.Length == 0) return;
+        _dialogueEffect.SetText(_texts[_index]);
+        Debug.Log($"[DialogueTest] ({_index + 1}/{_texts.Length})");
     }
 }

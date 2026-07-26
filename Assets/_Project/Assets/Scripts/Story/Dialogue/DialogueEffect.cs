@@ -36,7 +36,7 @@ public class DialogueEffect : MonoBehaviour
     private bool[] _rainbowChars = System.Array.Empty<bool>();
     private bool[] _roundChars   = System.Array.Empty<bool>();
 
-    // 글자별 해석된 강도 (SetText = Inspector 기본값, SetLines = 줄별 오버라이드)
+    // 글자별 해석된 강도 (마크업 태그에 파라미터가 없으면 Inspector 기본값)
     private float[] _charShakeIntensity = System.Array.Empty<float>();
     private float[] _charShakeSpeed     = System.Array.Empty<float>();
     private float[] _charWaveAmplitude  = System.Array.Empty<float>();
@@ -55,7 +55,7 @@ public class DialogueEffect : MonoBehaviour
 
     // ── 공개 API ──────────────────────────────────────────────────────────────
 
-    /// <summary>TMP 컴포넌트의 fontSize를 직접 변경합니다. SetLines/SetText 호출 전후 모두 유효합니다.</summary>
+    /// <summary>TMP 컴포넌트의 fontSize를 직접 변경합니다. SetText 호출 전후 모두 유효합니다.</summary>
     public void SetFontSize(float size)
     {
         _fontSize = size;
@@ -80,101 +80,6 @@ public class DialogueEffect : MonoBehaviour
     {
         if (_fontSize > 0f) _textComponent.fontSize = _fontSize;
         _textComponent.text = ParseTags(rawText);
-        CacheBaseVerticesIfNeeded();
-        StartTypewriter();
-    }
-
-    /// <summary>DialogueScript 에셋의 한 페이지를 재생합니다.
-    /// 여러 페이지("---" 구분) 에셋이면 page 인덱스로 선택하세요(기본 0).</summary>
-    public void SetScript(DialogueScript script, int page = 0)
-    {
-        if (script == null) return;
-        string[] pages = script.GetPages();
-        if (pages.Length == 0) return;
-        SetText(pages[Mathf.Clamp(page, 0, pages.Length - 1)]);
-    }
-
-    /// <summary>줄 배열로 텍스트를 설정합니다.
-    /// 각 DialogueLine마다 이팩트 종류와 강도를 개별 지정할 수 있습니다.</summary>
-    public void SetLines(DialogueLine[] lines)
-    {
-        if (_fontSize > 0f) _textComponent.fontSize = _fontSize;
-        var sb          = new StringBuilder();
-        var shakeList   = new List<bool>();
-        var waveList    = new List<bool>();
-        var rainbowList = new List<bool>();
-        var roundList   = new List<bool>();
-        var shakeIntL   = new List<float>();
-        var shakeSpdL   = new List<float>();
-        var waveAmpL    = new List<float>();
-        var waveSpdL    = new List<float>();
-        var waveFreqL   = new List<float>();
-        var rainbowSpdL = new List<float>();
-        var roundRadL   = new List<float>();
-        var roundSpdL   = new List<float>();
-        var typeSpdL    = new List<float>();
-
-        for (int li = 0; li < lines.Length; li++)
-        {
-            if (li > 0)
-            {
-                // 줄 구분자 \n — 이팩트 없음, 인덱스 동기화용 엔트리 추가
-                sb.Append('\n');
-                AppendCharEntry(shakeList, waveList, rainbowList, roundList,
-                    shakeIntL, shakeSpdL, waveAmpL, waveSpdL, waveFreqL, rainbowSpdL, roundRadL, roundSpdL, typeSpdL,
-                    false, false, false, false,
-                    _shakeIntensity, _shakeSpeed, _waveAmplitude, _waveSpeed, _waveFrequency, _rainbowSpeed, _roundRadius, _roundSpeed, _typeSpeed);
-            }
-
-            DialogueLine line = lines[li];
-
-            // 줄별 오버라이드 — 0 이하면 컴포넌트 기본값 사용
-            float si = line.ShakeIntensity > 0 ? line.ShakeIntensity : _shakeIntensity;
-            float ss = line.ShakeSpeed     > 0 ? line.ShakeSpeed     : _shakeSpeed;
-            float wa = line.WaveAmplitude  > 0 ? line.WaveAmplitude  : _waveAmplitude;
-            float ws = line.WaveSpeed      > 0 ? line.WaveSpeed      : _waveSpeed;
-            float wf = line.WaveFrequency  > 0 ? line.WaveFrequency  : _waveFrequency;
-            float rs = line.RainbowSpeed   > 0 ? line.RainbowSpeed   : _rainbowSpeed;
-            float rr = line.RoundRadius    > 0 ? line.RoundRadius    : _roundRadius;
-            float rsp = line.RoundSpeed    > 0 ? line.RoundSpeed     : _roundSpeed;
-            float ts = line.TypeSpeed      > 0 ? line.TypeSpeed      : _typeSpeed;
-
-            bool hasSize = line.FontSize > 0f;
-            if (hasSize) sb.Append($"<size={line.FontSize}>");
-            if (line.Bold) sb.Append("<b>");
-
-            foreach (char c in line.Text)
-            {
-                sb.Append(c);
-                AppendCharEntry(shakeList, waveList, rainbowList, roundList,
-                    shakeIntL, shakeSpdL, waveAmpL, waveSpdL, waveFreqL, rainbowSpdL, roundRadL, roundSpdL, typeSpdL,
-                    line.Shake, line.Wave, line.Rainbow, line.Round,
-                    si, ss, wa, ws, wf, rs, rr, rsp, ts);
-            }
-
-            if (line.Bold) sb.Append("</b>");
-            if (hasSize) sb.Append("</size>");
-        }
-
-        _shakeChars         = shakeList.ToArray();
-        _waveChars          = waveList.ToArray();
-        _rainbowChars       = rainbowList.ToArray();
-        _roundChars         = roundList.ToArray();
-        _charShakeIntensity = shakeIntL.ToArray();
-        _charShakeSpeed     = shakeSpdL.ToArray();
-        _charWaveAmplitude  = waveAmpL.ToArray();
-        _charWaveSpeed      = waveSpdL.ToArray();
-        _charWaveFrequency  = waveFreqL.ToArray();
-        _charRainbowSpeed   = rainbowSpdL.ToArray();
-        _charRoundRadius    = roundRadL.ToArray();
-        _charRoundSpeed     = roundSpdL.ToArray();
-        _charTypeSpeed      = typeSpdL.ToArray();
-        _hasShakeEffect     = shakeList.Contains(true);
-        _hasWaveEffect      = waveList.Contains(true);
-        _hasRainbowEffect   = rainbowList.Contains(true);
-        _hasRoundEffect     = roundList.Contains(true);
-
-        _textComponent.text = sb.ToString();
         CacheBaseVerticesIfNeeded();
         StartTypewriter();
     }
@@ -306,7 +211,7 @@ public class DialogueEffect : MonoBehaviour
         }
     }
 
-    // ── 마크업 파서 (SetText / DialogueScript 공용) ────────────────────────────
+    // ── 마크업 파서 (SetText 전용) ─────────────────────────────────────────────
     //
     // 지원 태그 (파라미터는 생략 시 컴포넌트 기본값 사용):
     //   <shake a=8 s=50> … </shake>     a=강도   s=속도
@@ -568,21 +473,5 @@ public class DialogueEffect : MonoBehaviour
             colors[vi + 2] = color;
             colors[vi + 3] = color;
         }
-    }
-
-    // ── 유틸 ──────────────────────────────────────────────────────────────────
-
-    private static void AppendCharEntry(
-        List<bool>  shakeList,  List<bool>  waveList,  List<bool>  rainbowList,  List<bool> roundList,
-        List<float> shakeIntL,  List<float> shakeSpdL,
-        List<float> waveAmpL,   List<float> waveSpdL,  List<float> waveFreqL,
-        List<float> rainbowSpdL, List<float> roundRadL, List<float> roundSpdL, List<float> typeSpdL,
-        bool shake, bool wave, bool rainbow, bool round,
-        float si, float ss, float wa, float ws, float wf, float rs, float rr, float rsp, float ts)
-    {
-        shakeList.Add(shake);   waveList.Add(wave);   rainbowList.Add(rainbow);   roundList.Add(round);
-        shakeIntL.Add(si);      shakeSpdL.Add(ss);
-        waveAmpL.Add(wa);       waveSpdL.Add(ws);     waveFreqL.Add(wf);
-        rainbowSpdL.Add(rs);    roundRadL.Add(rr);    roundSpdL.Add(rsp);   typeSpdL.Add(ts);
     }
 }
