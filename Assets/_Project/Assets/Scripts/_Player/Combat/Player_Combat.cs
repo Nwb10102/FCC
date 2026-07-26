@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -26,6 +27,7 @@ public class Player_Combat : MonoBehaviour {
     float stateTimer;
     SpriteRenderer rangeIndicator;
     Vector3 currentAttackWorldPos; // 공격이 시작된 순간의 월드 좌표. 판정 도중 플레이어가 움직여도 이 위치에 고정된다.
+    readonly HashSet<Health> hitTargets = new(); // 한 번의 공격에서 이미 때린 대상. 매번 새로 할당하지 않도록 재사용한다.
 
     #endregion
 
@@ -76,14 +78,20 @@ public class Player_Combat : MonoBehaviour {
         StartCooldown();
     }
 
-void DealDamage() {
+    void DealDamage() {
         if (attackPoint == null) return;
 
-        Collider2D hit = Physics2D.OverlapCircle(currentAttackWorldPos, attackRange, enemyLayer);
-        if (hit == null) return;
+        // OverlapCircle은 콜라이더를 하나만 돌려줘서 겹쳐 있는 몬스터 중 한 마리만 맞는다. 범위 안의 전부를 때린다.
+        Collider2D[] hits = Physics2D.OverlapCircleAll(currentAttackWorldPos, attackRange, enemyLayer);
+        if (hits.Length == 0) return;
 
-        Health enemyHealth = hit.GetComponentInParent<Health>();
-        if (enemyHealth != null) {
+        hitTargets.Clear();
+        foreach (Collider2D hit in hits) {
+            Health enemyHealth = hit.GetComponentInParent<Health>();
+
+            // 한 대상에 콜라이더가 여러 개 붙어 있어도 한 번만 때린다.
+            if (enemyHealth == null || !hitTargets.Add(enemyHealth)) continue;
+
             enemyHealth.TakeDamage(attackDamage, currentAttackWorldPos);
         }
     }

@@ -13,12 +13,24 @@ public class HealthBar : MonoBehaviour {
     public Color backgroundColor = Color.black;
     public Color fillColor = Color.red;
 
+    [Header("피격 반응")]
+    public Color delayedColor = new(1f, 1f, 1f, 0.85f); // 빨간 바가 줄어든 뒤 뒤따라 줄어드는 잔상 색.
+    public float drainDelay = 0.25f; // 잔상이 줄기 시작하기까지의 대기 시간.
+    public float drainSpeed = 1.2f; // 잔상이 줄어드는 속도 (비율/초).
+    public float shakeDuration = 0.2f;
+    public float shakeStrength = 0.06f;
+
     #endregion
     #region 컴포넌트 변수
 
     Health health;
     Transform barRoot;
     Transform fillTransform;
+    Transform delayedTransform;
+
+    float delayedRatio = 1f; // 잔상 바가 현재 표시하고 있는 비율.
+    float drainTimer;
+    float shakeTimer;
 
     static Sprite centerPivotSprite;
     static Sprite leftPivotSprite;
@@ -31,15 +43,57 @@ public class HealthBar : MonoBehaviour {
         BuildBar();
     }
 
-    void LateUpdate() {
-        barRoot.position = transform.position + offset; // 캐릭터를 따라다니게 위치 갱신.
+    void OnEnable() {
+        health.OnDamaged += HandleDamaged;
+    }
 
-        float ratio = health.MaxHealth > 0 ? (float)health.CurrentHealth / health.MaxHealth : 0f;
-        fillTransform.localScale = new Vector3(size.x * Mathf.Clamp01(ratio), size.y, 1f);
+    void OnDisable() {
+        health.OnDamaged -= HandleDamaged;
+    }
+
+    void LateUpdate() {
+        barRoot.position = transform.position + offset + GetShakeOffset(); // 캐릭터를 따라다니게 위치 갱신.
+
+        float ratio = health.MaxHealth > 0 ? Mathf.Clamp01((float)health.CurrentHealth / health.MaxHealth) : 0f;
+        fillTransform.localScale = new Vector3(size.x * ratio, size.y, 1f);
+
+        UpdateDelayedBar(ratio);
     }
 
     void OnDestroy() {
         if (barRoot != null) Destroy(barRoot.gameObject); // 캐릭터가 사라져도 체력바만 남지 않도록 정리.
+    }
+
+    #endregion
+    #region 피격 반응
+
+    void HandleDamaged(int damage, Vector2 sourcePosition) {
+        drainTimer = drainDelay;
+        shakeTimer = shakeDuration;
+    }
+
+    // 빨간 바는 즉시 줄고, 흰 잔상이 잠깐 머물렀다가 뒤따라 줄어들어 얼마나 깎였는지 눈에 보이게 한다.
+    void UpdateDelayedBar(float ratio) {
+        if (delayedRatio < ratio) {
+            delayedRatio = ratio; // 회복했을 때는 잔상이 즉시 따라간다.
+        }
+        else if (drainTimer > 0f) {
+            drainTimer -= Time.unscaledDeltaTime;
+        }
+        else {
+            delayedRatio = Mathf.MoveTowards(delayedRatio, ratio, drainSpeed * Time.unscaledDeltaTime);
+        }
+
+        delayedTransform.localScale = new Vector3(size.x * delayedRatio, size.y, 1f);
+    }
+
+    // 히트스톱 중에도 흔들려야 하므로 unscaledDeltaTime 기준.
+    Vector3 GetShakeOffset() {
+        if (shakeTimer <= 0f) return Vector3.zero;
+
+        shakeTimer -= Time.unscaledDeltaTime;
+        float damping = shakeDuration > 0f ? Mathf.Clamp01(shakeTimer / shakeDuration) : 0f;
+        return Random.insideUnitCircle * (shakeStrength * damping);
     }
 
     #endregion
@@ -52,7 +106,11 @@ public class HealthBar : MonoBehaviour {
         SpriteRenderer background = CreateBarPiece("Background", GetCenterPivotSprite(), backgroundColor, sortingOrder);
         background.transform.localScale = new Vector3(size.x, size.y, 1f);
 
-        SpriteRenderer fill = CreateBarPiece("Fill", GetLeftPivotSprite(), fillColor, sortingOrder + 1);
+        SpriteRenderer delayed = CreateBarPiece("Delayed", GetLeftPivotSprite(), delayedColor, sortingOrder + 1);
+        delayedTransform = delayed.transform;
+        delayedTransform.localPosition = new Vector3(-size.x * 0.5f, 0f, 0f);
+
+        SpriteRenderer fill = CreateBarPiece("Fill", GetLeftPivotSprite(), fillColor, sortingOrder + 2);
         fillTransform = fill.transform;
         fillTransform.localPosition = new Vector3(-size.x * 0.5f, 0f, 0f); // 배경의 왼쪽 끝에 맞춤.
     }
