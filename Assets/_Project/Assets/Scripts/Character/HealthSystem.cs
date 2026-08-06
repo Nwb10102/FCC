@@ -79,4 +79,20 @@ public class Health : MonoBehaviour
     }
 
     #endregion
+    #region 체력 회복
+
+    // 데미지가 아닌 경로(세이브 복원, 거울에서의 회복, 기억 조각 섭취)로 체력을 바꿀 때 쓴다.
+    // 0을 넣어도 Die()는 돌지 않는다 — 사망은 TakeDamage를 통해서만 일어나야 연출이 한 번만 재생된다.
+    // HealthBar는 매 프레임 CurrentHealth를 읽어 그리므로 별도 이벤트 없이도 표시가 따라온다.
+    public void SetHealth(int value) {
+        if (isDead) return;
+        currentHealth = Mathf.Clamp(value, 0, maxHealth);
+    }
+
+    // 거울(체크포인트)에서 자아 게이지를 가득 채울 때 사용.
+    public void RestoreFull() {
+        SetHealth(maxHealth);
+    }
+
+    #endregion
 }

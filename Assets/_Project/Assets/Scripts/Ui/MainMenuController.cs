@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class MainMenuController : MonoBehaviour {
@@ -7,6 +6,11 @@ public class MainMenuController : MonoBehaviour {
 
     [Header("UI Panels")]
     public GameObject settingsPanel; // 메인 메뉴에서 열리는 설정창.
+
+    [Header("씬 이름")]
+    // [Game Start] 로 시작하는 씬. 프롤로그 컷씬(Chapter0/CutScenePage/First)부터 시작한다.
+    // **빌드 세팅(File ▸ Build Profiles)에 등록된 씬 이름을 정확히 적으세요.**
+    public string startSceneName = "First";
 
     #endregion
     #region 컴포넌트 변수
@@ -46,8 +50,10 @@ public class MainMenuController : MonoBehaviour {
     #region 씬 전환 관련 함수
 
     // [Game Start] 버튼 클릭 시 호출.
+    // 씬 로드를 직접 하지 않고 ScreenFader를 거친다 — 화면이 검게 덮인 뒤에 프롤로그가 시작되어야 하기 때문.
+    // 씬에 ScreenFader가 없으면 ScreenFader.LoadScene이 알아서 연출 없이 바로 넘긴다.
     public void StartGame() {
-        SceneManager.LoadScene("master_scene"); // 씬 이름이 바뀌면 여기를 수정.
+        ScreenFader.LoadScene(startSceneName);
     }
 
     // [Exit] 버튼 클릭 시 호출.

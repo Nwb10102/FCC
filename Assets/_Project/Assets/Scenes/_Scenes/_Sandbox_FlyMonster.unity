@@ -555,8 +555,11 @@ MonoBehaviour:
   killHitStopDuration: 0.14
   referenceDamage: 50
   hitStopTimeScale: 0.02
-  shakeForce: 0.8
-  killShakeForce: 1.6
+  shakeForce: 0.35
+  killShakeForce: 0.7
+  shakeDuration: 0.55
+  shakeOscillations: 1.5
+  shakeDamping: 4.5
 --- !u!114 &633431379
 MonoBehaviour:
   m_ObjectHideFlags: 0

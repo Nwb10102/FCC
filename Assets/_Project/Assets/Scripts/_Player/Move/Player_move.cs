@@ -1,6 +1,5 @@
 using System;
 using Unity.VisualScripting;
-using UnityEditor.Callbacks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -222,38 +221,24 @@ public class Player_move : MonoBehaviour
 
     #region 플레이어 데이터 저장/ 불러오기 관련 함수
 
-    public void SaveGame()
-    {
-        SaveData data = new SaveData();
-
-
-        data.posX = transform.position.x;
-        data.posY = transform.position.y;
-
-        SaveManager.Instance.Save(data);
+    // 정식 저장 지점은 거울(SaveMirror)이다. 아래 F5/F9는 거울까지 가지 않고 바로 확인하기 위한 개발용 단축키로,
+    // 체력·목표 진행도까지 포함한 저장/복원은 SaveManager가 전부 처리한다.
+    public void SaveGame() {
+        if (SaveManager.Instance != null) SaveManager.Instance.SaveGame(string.Empty); // checkpointId를 비워 퀵세이브로 기록.
     }
 
-    public void LoadGame()
-    {
-        SaveData data = SaveManager.Instance.Load();
-
-        if (data == null)
-            return;
-
-
-        transform.position =
-            new Vector2(data.posX, data.posY);
+    public void LoadGame() {
+        if (SaveManager.Instance != null) SaveManager.Instance.LoadGame();
     }
 
-    public void SaveLoadSystem()
-    {
-        if (Keyboard.current.f5Key.wasPressedThisFrame)
-        {
+    public void SaveLoadSystem() {
+        if (Keyboard.current == null) return; // 키보드가 연결되지 않은 환경(패드 전용)에서 널 참조를 피한다.
+
+        if (Keyboard.current.f5Key.wasPressedThisFrame) {
             SaveGame();
         }
 
-        if (Keyboard.current.f9Key.wasPressedThisFrame)
-        {
+        if (Keyboard.current.f9Key.wasPressedThisFrame) {
             LoadGame();
         }
     }

@@ -70,12 +70,19 @@ public class DialogueView : MonoBehaviour
     }
 
     /// <summary>대화창을 켜고 한 칸(화자 + 초상화 + 본문 + 효과음)을 표시합니다.</summary>
-    public void Show(DialogueEntry entry)
+    /// <param name="entry">초상화·좌우·효과음처럼 번역이 필요 없는 값을 읽어옵니다.</param>
+    /// <param name="speaker">현재 언어로 해석된 화자 이름. 비어 있으면 이름표를 숨깁니다.</param>
+    /// <param name="text">현재 언어로 해석된 본문. DialogueEffect의 마크업 태그가 들어 있습니다.</param>
+    /// <remarks>
+    /// 문자열을 entry에서 직접 꺼내지 않고 밖에서 받는 이유는, String Table 조회가 비동기라
+    /// 코루틴(DialoguePlayer) 쪽에서만 기다릴 수 있기 때문입니다.
+    /// </remarks>
+    public void Show(DialogueEntry entry, string speaker, string text)
     {
         SetRootActive(true);
-        SetSpeaker(entry.Speaker, entry.Portrait, entry.Side);
+        SetSpeaker(speaker, entry.Portrait, entry.Side);
         if (_sfxSource != null && entry.Sound != null) _sfxSource.PlayOneShot(entry.Sound);
-        if (_effect != null) _effect.SetText(entry.Text);
+        if (_effect != null) _effect.SetText(text);
     }
 
     /// <summary>진행 중인 타자기 출력을 즉시 끝냅니다.</summary>

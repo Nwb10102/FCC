@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Dialogue_ko
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: ko
+  m_SharedData: {fileID: 11400000, guid: 5e06240941985684099e5e2e5e2644a2, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 57801703424
+    m_Localized: dd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57814286336
+    m_Localized: "\uC548\uB155! \uC5EC\uAE30\uAE4C\uC9C0 \uB4E4\uC5B4\uC624\uB2E4\uB2C8
+      \uC6A9\uAC10\uD55C\uAC78."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57826869248
+    m_Localized: "<wave>\uC774 \uC601\uC5ED\uC5D0 \uB4E4\uC5B4\uC624\uBA74 \uB300\uD654\uAC00
+      \uC2DC\uC791\uB3FC.</wave>"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57843646464
+    m_Localized: "\uB300\uD654\uAC00 \uB05D\uB098\uBA74 \uB2E4\uC2DC \uC6C0\uC9C1\uC77C
+      \uC218 \uC788\uC5B4. \uC88B\uC740 \uC5EC\uD589 \uB418\uAE38!"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []
