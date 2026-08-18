@@ -18,7 +18,7 @@ MonoBehaviour:
       m_TableCollectionName: Objective
     m_TableEntryReference:
       m_KeyId: 55821991936
-      m_Key: obj.finish_sample_dialogue
+      m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []

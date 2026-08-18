@@ -4,9 +4,10 @@ using UnityEngine;
 public static class AttackRangeIndicator {
     static Sprite ringSprite;
 
-    public static SpriteRenderer Create(float range, Color color, int sortingOrder = 50) {
+    public static SpriteRenderer Create(float range, Color color, int sortingOrder = 50, float visualScale = 1f) {
         GameObject obj = new GameObject("AttackRangeIndicator");
-        obj.transform.localScale = new Vector3(range * 2f, range * 2f, 1f);
+        float diameter = range * 2f * visualScale; // visualScale은 실제 판정 범위(range)에는 영향을 주지 않고 링의 겉보기 크기만 줄인다.
+        obj.transform.localScale = new Vector3(diameter, diameter, 1f);
 
         SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
         renderer.sprite = GetRingSprite();

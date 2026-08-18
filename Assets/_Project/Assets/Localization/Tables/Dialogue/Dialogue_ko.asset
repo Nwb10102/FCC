@@ -19,22 +19,19 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 57801703424
-    m_Localized: dd
+    m_Localized: "\uC11C\uCEE4\uC2A4 \uB2E8\uC7A5"
     m_Metadata:
       m_Items: []
   - m_Id: 57814286336
-    m_Localized: "\uC548\uB155! \uC5EC\uAE30\uAE4C\uC9C0 \uB4E4\uC5B4\uC624\uB2E4\uB2C8
-      \uC6A9\uAC10\uD55C\uAC78."
+    m_Localized: "<speed=60>\uC5B4\uC11C \uC624\uAC8C, \uC190\uB2D8!</speed> \uC774 \uB0A1\uC740 \uC11C\uCEE4\uC2A4 \uADF9\uC7A5\uC5D0 <bold>\uC624\uC2E0 \uAC78 \uD658\uC601\uD558\uB124.</bold>"
     m_Metadata:
       m_Items: []
   - m_Id: 57826869248
-    m_Localized: "<wave>\uC774 \uC601\uC5ED\uC5D0 \uB4E4\uC5B4\uC624\uBA74 \uB300\uD654\uAC00
-      \uC2DC\uC791\uB3FC.</wave>"
+    m_Localized: "<shake a=6 s=40>\uC870\uC2EC\uD558\uAC8C!</shake> \uC774 \uBB34\uB300 \uC544\uB798\uC5D0\uB294 \uBB34\uC5B8\uAC00 <wave>\uAFC8\uD2C0\uAC70\uB9AC\uACE0</wave> \uC788\uB2E4\uB124."
     m_Metadata:
       m_Items: []
   - m_Id: 57843646464
-    m_Localized: "\uB300\uD654\uAC00 \uB05D\uB098\uBA74 \uB2E4\uC2DC \uC6C0\uC9C1\uC77C
-      \uC218 \uC788\uC5B4. \uC88B\uC740 \uC5EC\uD589 \uB418\uAE38!"
+    m_Localized: "<rainbow s=2>\uD654\uB824\uD55C \uC870\uBA85</rainbow> \uC544\uB798, \uADF8\uB300\uB294 <round r=4 s=5>\uACF5\uC911\uADF8\uB124</round>\uCC98\uB7FC \uC6B4\uBA85\uC744 \uB9F4\uB3CC\uAC8C \uB420 \uAC78\uC138."
     m_Metadata:
       m_Items: []
   references:

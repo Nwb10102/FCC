@@ -19,19 +19,19 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 57801703424
-    m_Localized: dd
+    m_Localized: Circus Ringmaster
     m_Metadata:
       m_Items: []
   - m_Id: 57814286336
-    m_Localized: Hey! Brave of you to make it this far.
+    m_Localized: "<speed=60>Ah, welcome, traveler!</speed> <bold>You've arrived</bold> at this old circus theater."
     m_Metadata:
       m_Items: []
   - m_Id: 57826869248
-    m_Localized: <wave>Step into this area and the conversation begins.</wave>
+    m_Localized: "<shake a=6 s=40>Careful now!</shake> Something <wave>stirs</wave> beneath this stage."
     m_Metadata:
       m_Items: []
   - m_Id: 57843646464
-    m_Localized: You can move again once it ends. Safe travels!
+    m_Localized: "Beneath the <rainbow s=2>dazzling lights</rainbow>, your fate will spin like a <round r=4 s=5>trapeze</round>."
     m_Metadata:
       m_Items: []
   references:

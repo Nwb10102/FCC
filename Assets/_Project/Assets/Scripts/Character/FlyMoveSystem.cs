@@ -12,6 +12,7 @@ public class FlyMoveSystem : MonoBehaviour {
 
     [Header("연결")]
     public Transform visual; // 회전·반전시킬 스프라이트 자식. **몬스터 밑의 Renderer 오브젝트를 연결하세요.**
+    public SpriteStateAnimator spriteAnimator; // 상태별 스프라이트 전환 담당. **visual과 같은 Renderer 오브젝트에 붙이고 연결하세요.**
 
     [Header("레이어")]
     public LayerMask playerLayer; // 플레이어 레이어. **Player(3) 를 지정하세요.**
@@ -34,9 +35,13 @@ public class FlyMoveSystem : MonoBehaviour {
     [Header("돌진 예고")]
     public float aimDuration = 0.35f; // 돌진 전 멈춰서 예고하는 시간. 가속·활주까지 더하면 체감 경고는 약 1초다.
     public float aimStagger = 0.15f; // 여기에 0~이 값만큼 랜덤을 더한다. 여러 마리가 한 몸처럼 동시에 튀어나오는 걸 깬다.
-    public float aimBrakeDrag = 10f; // 예고 중 감속률. 속도를 0으로 대입하면 뚝 끊겨 보여서 감쇠로 세운다.
+    public float aimLiftHeight = 0.8f; // 예고 중 위로 떠오르는 높이. 이만큼 뜬 자리가 돌진의 새 출발점이 되어 아래로 내리찍는 궤적이 나온다.
+    public float aimLiftBurstSpeed = 9f; // 예고가 시작되는 순간 위로 쏘아 올리는 초기 속도. 여기서 "확 뜨는" 느낌이 나온다.
+    public float aimLiftSpeed = 3f; // 초기 임펄스 이후 목표 높이에 다가가는 속도.
+    public float aimLiftAccel = 6f; // 떠오르는 속도에 붙는 가속률.
     public Color aimIndicatorColor = new(1f, 0.35f, 0.1f, 0.9f); // 예고 링 색상.
     public float aimIndicatorStartScale = 2.5f; // 예고 링이 이 배율에서 1배로 좁혀 들어온다. 남은 시간이 크기로 읽힌다.
+    public float aimIndicatorVisualScale = 0.6f; // 링의 겉보기 크기 배율. 1보다 작게 하면 실제 판정 범위(ramRadius)는 그대로 두고 시각적으로만 작게 보인다.
 
     [Header("돌진")]
     public float chargeSpeed = 14f; // 돌진 최고 속도. 플레이어가 달려서는 못 피하고 점프·타이밍으로 피해야 하는 값.
@@ -75,15 +80,11 @@ public class FlyMoveSystem : MonoBehaviour {
     public int wallDamageMax = 0; // 자해 데미지 상한. 0이면 무제한.
     public float wallHitCooldown = 0.4f; // 한 번의 충돌이 여러 번 잡히는 걸 막는 간격. 벽면을 따라 미끄러지면 접촉이 재발생한다.
 
-    [Header("시각")]
-    public float visualTurnGain = 12f; // 스프라이트가 목표 방향으로 도는 빠르기. 몸보다 빨리 돌아야 몸이 흘러가는 게 보인다.
-
     #endregion
     #region 컴포넌트 변수
 
     Rigidbody2D rigid;
     Health health;
-    SpriteRenderer visualSprite;
     SpriteRenderer aimIndicator;
 
     FlyState state = FlyState.Patrol;
@@ -100,6 +101,7 @@ public class FlyMoveSystem : MonoBehaviour {
     Health targetHealth;
 
     float aimTime; // aimDuration + 랜덤 스태거.
+    Vector2 aimStartPosition; // 예고를 시작한 위치. 떠오르는 목표 높이의 기준점이다.
     Vector2 chargeDirection = Vector2.right;
     Vector2 chargeOrigin;
     Vector2 chargeTargetPoint;
@@ -128,10 +130,8 @@ public class FlyMoveSystem : MonoBehaviour {
         rigid.interpolation = RigidbodyInterpolation2D.Interpolate;
         rigid.collisionDetectionMode = CollisionDetectionMode2D.Continuous; // 돌진이 빨라 Discrete 면 얇은 벽을 통과한다.
         rigid.sleepMode = RigidbodySleepMode2D.NeverSleep; // 예고 중 거의 멈추는데 기본 설정이면 0.5초 뒤 잠들어 다시 안 움직인다.
-        rigid.freezeRotation = true; // 회전은 자식 visual 만 시킨다.
+        rigid.freezeRotation = true; // 물리 충돌로 몸이 제멋대로 도는 것만 막는다. 좌우 표현은 visual 스케일 반전으로 따로 처리한다.
         rigid.excludeLayers = 1 << gameObject.layer; // 같은 몬스터끼리 밀치면 돌진 궤적이 흔들린다. 매트릭스를 건드리지 않고 이 몸만 뺀다.
-
-        if (visual != null) visualSprite = visual.GetComponentInChildren<SpriteRenderer>();
     }
 
     void Start() {
@@ -206,12 +206,25 @@ public class FlyMoveSystem : MonoBehaviour {
         state = FlyState.Patrol;
         stateTimer = 0f;
         HideAimIndicator();
+        SetStateSprite("Idle");
     }
 
     void EnterAim() {
         state = FlyState.Aim;
         stateTimer = 0f;
         aimTime = aimDuration + Random.Range(0f, aimStagger);
+        aimStartPosition = rigid.position;
+        SetStateSprite("Aim");
+
+        // 순간 임펄스로 속도를 위로 꽂아 넣는다. TickAim 의 Seek 는 목표 높이에 다가가는 뒷정리만 맡아서
+        // 여기 없이 Seek 만 쓰면 가속이 붙는 데 시간이 걸려 흐르듯 뜨는 그림이 나온다.
+        rigid.linearVelocity = Vector2.up * aimLiftBurstSpeed;
+
+        // 찍는 건 도착 지점뿐이다. 예고 도중 계속 갱신하면 사실상 플레이어를 따라가며 박는
+        // 호밍 공격이 되어 "위치를 찍고 박는다"는 의도가 사라진다. 돌진 방향은 떠오른 뒤
+        // EnterCharge 에서 새로 계산해 위→아래로 내리찍는 궤적을 만든다.
+        if (HasTarget()) chargeTargetPoint = target.position;
+
         ShowAimIndicator();
     }
 
@@ -220,6 +233,12 @@ public class FlyMoveSystem : MonoBehaviour {
         stateTimer = 0f;
         hasHitThisCharge = false;
         chargeOrigin = rigid.position;
+        SetStateSprite("Charge");
+
+        // 떠오른 위치에서 도착 지점을 다시 겨눈다. 이 한 번의 계산이 내리찍는 각도를 만든다.
+        Vector2 toTarget = chargeTargetPoint - chargeOrigin;
+        chargeDirection = toTarget.sqrMagnitude > 0.0001f ? toTarget.normalized : facingDirection;
+        SetFacing(chargeDirection);
 
         // 조준점이 코앞이면 출발하자마자 오버슛 판정이 떠서 돌진이 성립하지 않는다.
         chargeDistance = Mathf.Max(Vector2.Dot(chargeTargetPoint - chargeOrigin, chargeDirection), chargeMinDistance);
@@ -233,6 +252,7 @@ public class FlyMoveSystem : MonoBehaviour {
         state = FlyState.Drift;
         stateTimer = 0f;
         HideAimIndicator();
+        SetStateSprite("Idle"); // 드리프트 전용 스프라이트가 없어 기본상태를 재사용한다. 튕겨나가는 회복 구간이라 위화감이 적다.
     }
 
     #endregion
@@ -264,18 +284,17 @@ public class FlyMoveSystem : MonoBehaviour {
     }
 
     void TickAim(float dt) {
-        // 제자리에서 멈춰 예고한다. 속도를 0으로 대입하면 뚝 끊겨 보여서 감쇠로 세운다.
-        rigid.linearVelocity *= Mathf.Exp(-aimBrakeDrag * dt);
+        // 예고를 시작한 자리 바로 위로 떠오른다. 이 뜬 위치가 EnterCharge 에서 돌진의 새 출발점이 되어
+        // 아래로 내리찍는 궤적을 만든다. 목표를 aimStartPosition 기준 고정값으로 잡아 몸이 떠 있는 동안 흔들리지 않는다.
+        Vector2 liftTarget = aimStartPosition + Vector2.up * aimLiftHeight;
+        Vector2 toLift = liftTarget - rigid.position;
+        Vector2 liftVelocity = toLift.sqrMagnitude > 0.01f ? toLift.normalized * aimLiftSpeed : Vector2.zero;
+        Seek(liftVelocity, aimLiftAccel, dt);
 
-        // 예고가 끝나는 순간까지는 조준을 계속 갱신한다. 플레이어가 움직이면 링도 따라 돈다.
-        if (HasTarget()) {
-            Vector2 toTarget = (Vector2)target.position - rigid.position;
-            if (toTarget.sqrMagnitude > 0.0001f) {
-                chargeDirection = toTarget.normalized;
-                chargeTargetPoint = target.position;
-                SetFacing(chargeDirection);
-            }
-        }
+        // 도착 지점은 고정이지만, 몸이 떠오르는 동안 그 지점을 계속 내려다보게 시선만 갱신한다.
+        // 조준점 자체를 다시 찍는 게 아니라서 호밍이 아니다.
+        Vector2 toTargetPoint = chargeTargetPoint - rigid.position;
+        if (toTargetPoint.sqrMagnitude > 0.0001f) SetFacing(toTargetPoint.normalized);
 
         if (stateTimer < aimTime) return;
 
@@ -426,7 +445,8 @@ public class FlyMoveSystem : MonoBehaviour {
         // 성공에만 걸면 무적인 플레이어를 계속 들이받으며 돌진과 드리프트를 무한 반복한다.
         hasHitThisCharge = true;
 
-        Health hitHealth = hit.GetComponentInParent<Health>();
+        // SweepForPlayer 가 Hurtbox 콜라이더만 돌려주므로 여기서는 바로 꺼내 쓴다.
+        Health hitHealth = hit.TryGetComponent(out Hurtbox hurtbox) ? hurtbox.OwnerHealth : null;
 
         // 박치기는 몸통이 무기다. 공격 원점을 몬스터 위치로 넘겨야 플레이어가 몬스터 반대편으로 날아간다.
         if (hitHealth != null) hitHealth.TakeDamage(ramDamage, rigid.position);
@@ -441,13 +461,22 @@ public class FlyMoveSystem : MonoBehaviour {
 
         // 한 스텝의 이동 구간 전체를 훑는다. 지금 chargeSpeed 로는 터널링이 안 나지만,
         // 이게 있어야 나중에 속도를 크게 올려도 판정이 새지 않는다.
+        // CircleCast(단일) 는 맨 처음 걸린 콜라이더를 돌려주는데, 그게 플레이어의 이동용 몸통 콜라이더일 수 있다.
+        // All 로 훑어서 Hurtbox 가 붙은 콜라이더를 직접 골라낸다.
         if (distance > 0.0001f) {
-            RaycastHit2D swept = Physics2D.CircleCast(lastCheckPosition, ramRadius, delta / distance, distance, playerLayer);
-            if (swept.collider != null) return swept.collider;
+            RaycastHit2D[] swept = Physics2D.CircleCastAll(lastCheckPosition, ramRadius, delta / distance, distance, playerLayer);
+            foreach (RaycastHit2D hit in swept) {
+                if (hit.collider.GetComponent<Hurtbox>() != null) return hit.collider;
+            }
         }
 
         // 예고 중에 플레이어가 걸어와 이미 겹쳐 있으면 스윕 길이가 0이라 위에서 안 잡힌다.
-        return Physics2D.OverlapCircle(rigid.position, ramRadius, playerLayer);
+        Collider2D[] overlaps = Physics2D.OverlapCircleAll(rigid.position, ramRadius, playerLayer);
+        foreach (Collider2D overlap in overlaps) {
+            if (overlap.GetComponent<Hurtbox>() != null) return overlap;
+        }
+
+        return null;
     }
 
     #endregion
@@ -528,22 +557,19 @@ public class FlyMoveSystem : MonoBehaviour {
         facingDirection = direction.normalized;
     }
 
+    // GroundMoveSystem/Player_move 와 같은 방식이다: 플레이어를 향해 회전하지 않고, 좌우 스케일 부호만 뒤집는다.
+    // 위아래로만 움직여 facingDirection.x 가 거의 0인 순간(순찰 반환점 등)에는 이전 좌우를 그대로 유지한다.
     void UpdateVisual() {
-        if (visual == null) return;
+        if (visual == null || Mathf.Abs(facingDirection.x) < 0.0001f) return;
 
-        float angle = Mathf.Atan2(facingDirection.y, facingDirection.x) * Mathf.Rad2Deg;
         bool faceLeft = facingDirection.x < 0f;
+        Vector3 scale = visual.localScale;
+        scale.x = Mathf.Abs(scale.x) * (faceLeft ? -1f : 1f);
+        visual.localScale = scale;
+    }
 
-        // 왼쪽을 볼 때 180도 더 돌려 스프라이트가 거꾸로 서는 걸 flipY 로 되돌린다.
-        // localScale 로 반전하면 HitFlash 의 스쿼시가 매 프레임 스케일을 덮어써서 서로 튄다.
-        if (faceLeft) angle += 180f;
-
-        Quaternion goal = Quaternion.Euler(0f, 0f, angle);
-
-        // 히트스톱 중 몸은 멈췄는데 스프라이트만 도는 걸 막으려고 스케일된 deltaTime 을 쓴다.
-        visual.localRotation = Quaternion.Slerp(visual.localRotation, goal, 1f - Mathf.Exp(-visualTurnGain * Time.deltaTime));
-
-        if (visualSprite != null) visualSprite.flipY = faceLeft;
+    void SetStateSprite(string stateName) {
+        if (spriteAnimator != null) spriteAnimator.Play(stateName);
     }
 
     #endregion
@@ -561,11 +587,13 @@ public class FlyMoveSystem : MonoBehaviour {
     void UpdateAimIndicator() {
         if (aimIndicator == null || !aimIndicator.gameObject.activeSelf) return;
 
-        aimIndicator.transform.position = transform.position;
+        // 몸이 아니라 EnterAim 에서 찍어둔 도착 지점에 고정한다. 몸에 붙이면 몸이 브레이크 걸리며 미끄러지는 동안
+        // 링도 같이 흘러가서 "여전히 플레이어를 쫓아간다"는 인상을 준다.
+        aimIndicator.transform.position = chargeTargetPoint;
 
         // 링이 크게 시작해 몸 크기로 좁혀 들어온다. 남은 시간이 크기로 읽혀서 "언제 튀어나올지"까지 전달된다.
         float progress = aimTime > 0f ? Mathf.Clamp01(stateTimer / aimTime) : 1f;
-        float scale = Mathf.Lerp(aimIndicatorStartScale, 1f, progress) * ramRadius * 2f;
+        float scale = Mathf.Lerp(aimIndicatorStartScale, 1f, progress) * ramRadius * 2f * aimIndicatorVisualScale;
         aimIndicator.transform.localScale = new Vector3(scale, scale, 1f);
     }
 

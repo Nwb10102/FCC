@@ -19,6 +19,9 @@ public class Player_move : MonoBehaviour
 
     public bool useFacingRotation = false; // 플레이어가 바라보는 방향을 정하는 방식이 회전인지 스케일인지 여부. true면 회전, false면 스케일로 방향 전환.
 
+    [Header("걷기 애니메이션")]
+    public SpriteFlipbook walkAnimator; // 걷기 프레임 재생 담당. **Player_Renderer 오브젝트에 붙이고 연결하세요.**
+
     private bool IsFacingRight; // 플레이어가 오른쪽을 바라보고 있는지 여부.
 
     [Header("Ground Check")]
@@ -69,6 +72,7 @@ public class Player_move : MonoBehaviour
             TurnCheck();
         }
 
+        UpdateWalkAnimation();
         SaveLoadSystem(); // 저장 & 불러오기
     }
 
@@ -116,6 +120,15 @@ public class Player_move : MonoBehaviour
         else if (rigid.linearVelocityX <= maxSpeed * (-1)) {
             rigid.linearVelocity = new Vector2(maxSpeed * (-1), rigid.linearVelocityY);
         }
+    }
+
+    // 접지 상태에서 좌우 입력이 있을 때만 걷기 프레임을 재생한다. 공중에서는 걷는 것처럼 보이면 안 되므로 정지시킨다.
+    void UpdateWalkAnimation() {
+        if (walkAnimator == null) return;
+
+        bool isWalking = isGrounded && !isMovementLocked && moveInput.x != 0f;
+        if (isWalking) walkAnimator.Play();
+        else walkAnimator.Stop();
     }
 
     public void ApplyKnockback(Vector2 force, float duration = 0.15f) {

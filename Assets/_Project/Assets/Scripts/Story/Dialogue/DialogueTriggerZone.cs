@@ -52,6 +52,14 @@ public class DialogueTriggerZone : MonoBehaviour {
     bool played;
     static bool isPlaying; // 대사 두 묶음이 겹쳐 재생되지 않도록 씬 전체에서 하나만 돌게 한다.
 
+    // 프로젝트가 Enter Play Mode Options에서 Domain Reload를 꺼두고 있어, static 필드가 Play를
+    // 멈춰도 초기화되지 않는다. 대사가 재생되던 도중 Play를 멈추면 isPlaying이 true로 박제되어
+    // 이후 어떤 트리거도 조용히 무시되므로, Play 진입 시점마다 강제로 초기화한다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void ResetStaticStateOnPlay() {
+        isPlaying = false;
+    }
+
     #endregion
     #region 유니티 라이프 사이클
 

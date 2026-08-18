@@ -87,12 +87,13 @@ public class Player_Combat : MonoBehaviour {
 
         hitTargets.Clear();
         foreach (Collider2D hit in hits) {
-            Health enemyHealth = hit.GetComponentInParent<Health>();
+            // Hurtbox 가 없는 콜라이더(몬스터 이동용 몸통 콜라이더 등)는 판정에서 제외한다.
+            if (!hit.TryGetComponent(out Hurtbox hurtbox) || hurtbox.OwnerHealth == null) continue;
 
             // 한 대상에 콜라이더가 여러 개 붙어 있어도 한 번만 때린다.
-            if (enemyHealth == null || !hitTargets.Add(enemyHealth)) continue;
+            if (!hitTargets.Add(hurtbox.OwnerHealth)) continue;
 
-            enemyHealth.TakeDamage(attackDamage, currentAttackWorldPos);
+            hurtbox.OwnerHealth.TakeDamage(attackDamage, currentAttackWorldPos);
         }
     }
 

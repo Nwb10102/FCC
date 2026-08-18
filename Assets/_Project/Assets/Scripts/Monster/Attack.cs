@@ -18,11 +18,13 @@ public class Attack : MonoBehaviour {
 
     [Header("공격 범위 표시")]
     public Color rangeIndicatorColor = new(1f, 0.5f, 0f, 0.85f); // 선딜레이 동안 보여줄 판정 범위 색상.
+    public float rangeIndicatorScale = 0.6f; // 링의 겉보기 크기 배율. 1보다 작게 하면 실제 판정 범위(attackRange)는 그대로 두고 시각적으로만 작게 보인다.
 
     #endregion
     #region 컴포넌트 변수
 
     GroundMoveSystem moveSystem;
+    Animator animator; // 공격 준비·공격 모션 재생용. **비어 있어도 동작하지만 없으면 모션이 재생되지 않는다.**
     AttackState state = AttackState.Idle;
     float stateTimer;
     SpriteRenderer rangeIndicator;
@@ -32,10 +34,14 @@ public class Attack : MonoBehaviour {
 
     enum AttackState { Idle, Windup, Cooldown }
 
+    static readonly int WindupTrigger = Animator.StringToHash("Windup"); // Animator Controller 의 트리거 파라미터와 이름을 맞춰야 한다.
+    static readonly int StrikeTrigger = Animator.StringToHash("Strike");
+
     #region 유니티 라이프 사이클
 
     void Awake() {
         moveSystem = GetComponent<GroundMoveSystem>();
+        animator = GetComponent<Animator>();
         BuildRangeIndicator();
     }
 
@@ -72,23 +78,28 @@ public class Attack : MonoBehaviour {
         moveSystem.isMovementLocked = true; // 선딜레이 동안 제자리에서 공격 준비.
         currentAttackWorldPos = attackPoint.position; // 공격 시작 순간의 위치를 고정.
         ShowRangeIndicator();
+        if (animator != null) animator.SetTrigger(WindupTrigger);
     }
 
     void TickWindup() {
         stateTimer -= Time.deltaTime;
         if (stateTimer > 0f) return;
 
+        if (animator != null) animator.SetTrigger(StrikeTrigger);
         DealDamage();
         StartCooldown();
     }
 
 void DealDamage() {
         // 선딜레이가 끝난 시점에 플레이어가 범위 안에 있는지 다시 확인.
-        Collider2D hit = Physics2D.OverlapCircle(currentAttackWorldPos, attackRange, playerLayer);
-        if (hit == null) return;
+        // 단일 OverlapCircle 은 콜라이더를 하나만 돌려줘서 이동용 몸통 콜라이더가 먼저 잡힐 수 있다.
+        // 전부 훑어 Hurtbox 가 붙은 콜라이더만 골라낸다.
+        Collider2D[] hits = Physics2D.OverlapCircleAll(currentAttackWorldPos, attackRange, playerLayer);
+        foreach (Collider2D hit in hits) {
+            if (!hit.TryGetComponent(out Hurtbox hurtbox) || hurtbox.OwnerHealth == null) continue;
 
-        if (hit.TryGetComponent(out Health playerHealth)) {
-            playerHealth.TakeDamage(attackDamage, currentAttackWorldPos);
+            hurtbox.OwnerHealth.TakeDamage(attackDamage, currentAttackWorldPos);
+            break; // 플레이어는 하나뿐이라 찾으면 더 볼 필요 없다.
         }
     }
 
@@ -120,7 +131,7 @@ void DealDamage() {
     void BuildRangeIndicator() {
         if (attackPoint == null) return;
 
-        rangeIndicator = AttackRangeIndicator.Create(attackRange, rangeIndicatorColor);
+        rangeIndicator = AttackRangeIndicator.Create(attackRange, rangeIndicatorColor, visualScale: rangeIndicatorScale);
     }
 
     void ShowRangeIndicator() {

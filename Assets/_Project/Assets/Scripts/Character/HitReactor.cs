@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Health의 OnDamaged/OnDeath 이벤트를 받아 히트스톱/카메라쉐이크/파티클/데미지 숫자/넉백을 트리거한다.
+// Health의 OnDamaged/OnDeath 이벤트를 받아 히트스톱/카메라쉐이크/파티클/넉백을 트리거한다.
 // 피격 대상 본인의 시각 반응(플래시, 스쿼시)은 HitFlash가 따로 담당한다.
 // 플레이어와 몬스터 양쪽에 Health와 함께 부착해서 사용한다.
 [RequireComponent(typeof(Health))]
@@ -52,7 +52,6 @@ public class HitReactor : MonoBehaviour {
 
         // 싱글턴은 파괴된 뒤에도 참조가 남을 수 있어 ?. 대신 Unity의 == 오버로드를 타는 != null로 검사한다.
         if (HitVfx.Instance != null) HitVfx.Instance.PlaySpark(hitPoint, hitDir);
-        if (DamagePopup.Instance != null) DamagePopup.Instance.Show(hitPoint, damage, isLethal);
 
         // 처치했을 때는 HandleDeath에서 더 강한 피드백을 재생하므로 여기서는 건너뛴다 (히트스톱 이중 적용 방지).
         if (!isLethal && HitFeedback.Instance != null) {

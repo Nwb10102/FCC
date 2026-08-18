@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9484170bdd7d7e242a2c8071c427c717, type: 3}
+  m_Name: Skill_CycleOfFate
+  m_EditorClassIdentifier: Assembly-CSharp::Skill_CycleOfFate
+  skillID: cycle_of_fate
+  skillName: Cycle of Fate
+  description: "\uC800\uAE00\uB7EC\uC758 \uAE30\uBCF8 \uACF5 \uC2A4\uD0AC. \uC804\uBC29\uC73C\uB85C
+    \uACF5\uC744 \uB358\uC9C4\uB2E4. \uB358\uC9C8 \uB54C\uB9C8\uB2E4 {\uD3ED\uBC1C\uD558\uB294
+    \uACF5} \uC2A4\uD0DD\uC774 \uC30A\uC774\uACE0, \uC2A4\uD0DD\uC774 \uB2E4 \uCC2C
+    \uC0C1\uD0DC\uC5D0\uC11C \uB2E4\uC2DC \uB358\uC9C0\uBA74 \uC774\uBC88 \uACF5\uC774
+    \uBA85\uC911 \uC2DC \uD3ED\uBC1C\uD55C\uB2E4."
+  icon: {fileID: 0}
+  cooldown: 3
+  lastUsedTime: -9999
+  level: 0
+  levels:
+  - ballCount: 1
+    ballScale: 1
+    damage: 12
+    range: 6
+    stackGainPerUse: 1
+    explosionDamage: 20
+  - ballCount: 1
+    ballScale: 1.3
+    damage: 18
+    range: 8
+    stackGainPerUse: 1
+    explosionDamage: 30
+  - ballCount: 2
+    ballScale: 1.3
+    damage: 18
+    range: 8
+    stackGainPerUse: 2
+    explosionDamage: 45
+  projectilePrefab: {fileID: 2016009932928360803, guid: 32e614770c49d06468b4eaf6d9d82187, type: 3}
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  projectileSpeed: 16
+  explodeStackThreshold: 2
+  explosionRadius: 2.2
+  spreadAngle: 20
+  forwardOffset: 0.6
+  heightOffset: 0.5

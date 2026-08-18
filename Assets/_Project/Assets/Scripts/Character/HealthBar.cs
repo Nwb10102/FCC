@@ -19,6 +19,7 @@ public class HealthBar : MonoBehaviour {
     public float drainSpeed = 1.2f; // 잔상이 줄어드는 속도 (비율/초).
     public float shakeDuration = 0.2f;
     public float shakeStrength = 0.06f;
+    public float visibleDuration = 1.5f; // 피격 후 체력바가 표시된 채로 유지되는 시간. 이 시간이 지나고 잔상까지 다 줄면 숨는다.
 
     #endregion
     #region 컴포넌트 변수
@@ -31,6 +32,7 @@ public class HealthBar : MonoBehaviour {
     float delayedRatio = 1f; // 잔상 바가 현재 표시하고 있는 비율.
     float drainTimer;
     float shakeTimer;
+    float visibleTimer; // 0보다 크면 피격 직후라 체력바를 표시 중이라는 뜻.
 
     static Sprite centerPivotSprite;
     static Sprite leftPivotSprite;
@@ -52,12 +54,18 @@ public class HealthBar : MonoBehaviour {
     }
 
     void LateUpdate() {
-        barRoot.position = transform.position + offset + GetShakeOffset(); // 캐릭터를 따라다니게 위치 갱신.
+        if (visibleTimer > 0f) visibleTimer -= Time.unscaledDeltaTime;
 
         float ratio = health.MaxHealth > 0 ? Mathf.Clamp01((float)health.CurrentHealth / health.MaxHealth) : 0f;
-        fillTransform.localScale = new Vector3(size.x * ratio, size.y, 1f);
-
         UpdateDelayedBar(ratio);
+
+        // 잔상이 아직 줄어드는 중이면 표시 시간이 끝났어도 다 줄 때까지는 계속 보여준다.
+        bool shouldShow = visibleTimer > 0f || delayedRatio > ratio;
+        barRoot.gameObject.SetActive(shouldShow);
+        if (!shouldShow) return;
+
+        barRoot.position = transform.position + offset + GetShakeOffset(); // 캐릭터를 따라다니게 위치 갱신.
+        fillTransform.localScale = new Vector3(size.x * ratio, size.y, 1f);
     }
 
     void OnDestroy() {
@@ -70,6 +78,7 @@ public class HealthBar : MonoBehaviour {
     void HandleDamaged(int damage, Vector2 sourcePosition) {
         drainTimer = drainDelay;
         shakeTimer = shakeDuration;
+        visibleTimer = visibleDuration;
     }
 
     // 빨간 바는 즉시 줄고, 흰 잔상이 잠깐 머물렀다가 뒤따라 줄어들어 얼마나 깎였는지 눈에 보이게 한다.
@@ -113,6 +122,8 @@ public class HealthBar : MonoBehaviour {
         SpriteRenderer fill = CreateBarPiece("Fill", GetLeftPivotSprite(), fillColor, sortingOrder + 2);
         fillTransform = fill.transform;
         fillTransform.localPosition = new Vector3(-size.x * 0.5f, 0f, 0f); // 배경의 왼쪽 끝에 맞춤.
+
+        barRoot.gameObject.SetActive(false); // 평소에는 숨겨져 있다가 피격 시 LateUpdate에서 켜진다.
     }
 
     SpriteRenderer CreateBarPiece(string pieceName, Sprite sprite, Color color, int order) {

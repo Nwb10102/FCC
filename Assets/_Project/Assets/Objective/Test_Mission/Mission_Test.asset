@@ -18,7 +18,7 @@ MonoBehaviour:
       m_TableCollectionName: Objective
     m_TableEntryReference:
       m_KeyId: 55838769152
-      m_Key: mission.mission_test.name
+      m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []
@@ -27,7 +27,7 @@ MonoBehaviour:
       m_TableCollectionName: Objective
     m_TableEntryReference:
       m_KeyId: 55855546368
-      m_Key: mission.mission_test.desc
+      m_Key: 
     m_FallbackState: 0
     m_WaitForCompletion: 0
     m_LocalVariables: []

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 // 해금된 스킬 중 최대 3개를 슬롯에 장착하고, 입력에 맞춰 발동시킨다.
 // 기획서상 장착 수는 3개 고정이고 교체는 거울(정비하기)에서 한다.
@@ -45,6 +46,9 @@ public class SkillManager : MonoBehaviour {
 
     Player_move playerMove; // 대사·컷씬 중에는 스킬도 막아야 해서 이동 잠금 상태를 본다.
 
+    // 슬롯별 조준 중 여부. IAimableSkill(마우스 조준형 스킬)에만 쓰인다 — 누른 순간 true, 뗀 순간 false.
+    readonly bool[] isAimingSlot = new bool[SlotCount];
+
     #endregion
     #region 유니티 라이프 사이클
 
@@ -68,10 +72,14 @@ public class SkillManager : MonoBehaviour {
 
     void Update() {
         if (Keyboard.current == null) return; // 패드만 연결된 상황 등.
-        if (IsInputBlocked()) return;
+
+        if (IsInputBlocked()) {
+            CancelAllAiming(); // 조준 도중 대사·컷씬이 끼어들면 조준선이 화면에 남지 않도록 정리한다.
+            return;
+        }
 
         for (int i = 0; i < SlotCount; i++) {
-            if (WasSlotKeyPressed(i)) UseSkillInSlot(i);
+            HandleSlotInput(i);
         }
     }
 
@@ -83,13 +91,66 @@ public class SkillManager : MonoBehaviour {
         return playerMove != null && playerMove.isMovementLocked;
     }
 
-    bool WasSlotKeyPressed(int slotIndex) {
-        if (slotKeys == null || slotIndex >= slotKeys.Length) return false;
+    void HandleSlotInput(int slotIndex) {
+        if (slotKeys == null || slotIndex >= slotKeys.Length) return;
 
         Key key = slotKeys[slotIndex];
-        if (key == Key.None) return false; // Keyboard.current[Key.None]은 예외를 던진다.
+        if (key == Key.None) return; // Keyboard.current[Key.None]은 예외를 던진다.
 
-        return Keyboard.current[key].wasPressedThisFrame;
+        SkillBase skill = equippedSkills[slotIndex];
+        if (skill == null) return;
+
+        // 조준형 스킬(IAimableSkill)은 누름·유지·뗌을 전부 스킬에 넘겨준다. 아니면 기존처럼 누르는 즉시 발동.
+        if (skill is IAimableSkill aimable) {
+            HandleAimableInput(slotIndex, skill, aimable, Keyboard.current[key]);
+        }
+        else if (Keyboard.current[key].wasPressedThisFrame) {
+            UseSkillInSlot(slotIndex);
+        }
+    }
+
+    void HandleAimableInput(int slotIndex, SkillBase skill, IAimableSkill aimable, ButtonControl control) {
+        if (control.wasPressedThisFrame) {
+            if (!skill.IsReady()) {
+                if (logCooldown) {
+                    Debug.Log($"[SkillManager] '{skill.DisplayName}' 쿨타임 — 남은 시간 {skill.GetRemainingCooldown():F1}초");
+                }
+                return;
+            }
+
+            isAimingSlot[slotIndex] = true;
+            aimable.BeginAim(transform);
+            return;
+        }
+
+        if (!isAimingSlot[slotIndex]) return; // 쿨타임 중이라 조준을 시작하지 못했던 경우 등.
+
+        if (control.wasReleasedThisFrame) {
+            isAimingSlot[slotIndex] = false;
+            aimable.ReleaseAim(transform, GetMouseWorldPosition());
+            onSkillUsed?.Invoke(slotIndex, skill);
+        }
+        else if (control.isPressed) {
+            aimable.UpdateAim(transform, GetMouseWorldPosition());
+        }
+    }
+
+    void CancelAllAiming() {
+        for (int i = 0; i < SlotCount; i++) {
+            if (!isAimingSlot[i]) continue;
+
+            isAimingSlot[i] = false;
+            if (equippedSkills[i] is IAimableSkill aimable) aimable.CancelAim(transform);
+        }
+    }
+
+    // 마우스 커서 위치를 플레이어와 같은 z 평면의 월드 좌표로 변환한다.
+    Vector2 GetMouseWorldPosition() {
+        if (Mouse.current == null || Camera.main == null) return transform.position;
+
+        Vector3 screenPos = Mouse.current.position.ReadValue();
+        screenPos.z = Mathf.Abs(Camera.main.transform.position.z - transform.position.z);
+        return Camera.main.ScreenToWorldPoint(screenPos);
     }
 
     #endregion

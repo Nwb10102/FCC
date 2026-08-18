@@ -2825,7 +2825,6 @@ GameObject:
   - component: {fileID: 1364233291}
   - component: {fileID: 1364233290}
   - component: {fileID: 1364233294}
-  - component: {fileID: 1364233293}
   m_Layer: 0
   m_Name: HitFeedback
   m_TagString: Untagged
@@ -2923,66 +2922,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1364233293
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1364233289}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fa93e3bbcb7aac4fb4093fe467a8372, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DamagePopup
-  fontAsset: {fileID: 0}
-  fontSize: 5
-  smallDamageColor: {r: 1, g: 0.95, b: 0.7, a: 1}
-  bigDamageColor: {r: 1, g: 0.65, b: 0.15, a: 1}
-  lethalColor: {r: 1, g: 0.35, b: 0.3, a: 1}
-  referenceDamage: 50
-  outlineColor: {r: 0, g: 0, b: 0, a: 1}
-  outlineWidth: 0.25
-  sortingOrder: 120
-  lifetime: 0.65
-  riseHeight: 1.2
-  spreadX: 0.4
-  wobbleAngle: 12
-  fadeStart: 0.55
-  popDuration: 0.14
-  popCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0.4
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.55
-      value: 1.35
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!114 &1364233294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4670,6 +4609,7 @@ MonoBehaviour:
   drainSpeed: 1.2
   shakeDuration: 0.2
   shakeStrength: 0.06
+  visibleDuration: 1.5
 --- !u!114 &1809220491
 MonoBehaviour:
   m_ObjectHideFlags: 0
