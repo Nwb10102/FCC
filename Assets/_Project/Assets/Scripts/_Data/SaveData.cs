@@ -24,6 +24,9 @@ public class SaveData {
     public List<string> startedMissions = new List<string>();
 
     public string savedAt;      // 표시용 저장 시각. 나중에 불러오기 슬롯 UI에서 쓴다.
+
+    public int memoryShardCount; // 보유한 기억 조각 수.
+    public List<string> clearedArenaIds = new List<string>(); // 뒷세계 등 1회성 몬스터 구역 중 이미 클리어한 arenaId 목록.
 }
 
 // 목표 하나의 진행도. Objective 자체를 직렬화하면 description·targetCount 같은

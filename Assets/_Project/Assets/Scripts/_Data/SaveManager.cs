@@ -82,9 +82,17 @@ public class SaveManager : MonoBehaviour {
             data.maxHealth = health.MaxHealth;
         }
 
+        if (player != null && player.TryGetComponent(out Player_MemoryShardInventory shards)) {
+            data.memoryShardCount = shards.Count;
+        }
+
         if (ObjectiveManager.Instance != null) {
             data.objectives = ObjectiveManager.Instance.CaptureObjectives();
             data.startedMissions = ObjectiveManager.Instance.CaptureStartedMissions();
+        }
+
+        if (ArenaManager.Instance != null) {
+            data.clearedArenaIds = ArenaManager.Instance.CaptureClearedArenas();
         }
 
         Write(data);
@@ -128,10 +136,16 @@ public class SaveManager : MonoBehaviour {
 
             // maxHealth가 0이면 체력을 기록하지 않던 구버전 세이브이므로 현재 체력을 그대로 둔다.
             if (data.maxHealth > 0 && player.TryGetComponent(out Health health)) health.SetHealth(data.currentHealth);
+
+            if (player.TryGetComponent(out Player_MemoryShardInventory shards)) shards.SetCount(data.memoryShardCount);
         }
 
         if (ObjectiveManager.Instance != null) {
             ObjectiveManager.Instance.RestoreState(data.objectives, data.startedMissions);
+        }
+
+        if (ArenaManager.Instance != null) {
+            ArenaManager.Instance.RestoreClearedArenas(data.clearedArenaIds);
         }
     }
 
