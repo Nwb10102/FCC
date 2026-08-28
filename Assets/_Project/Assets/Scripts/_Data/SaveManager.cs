@@ -95,6 +95,10 @@ public class SaveManager : MonoBehaviour {
             data.clearedArenaIds = ArenaManager.Instance.CaptureClearedArenas();
         }
 
+        if (NpcDialogueManager.Instance != null) {
+            data.npcDialogueCounts = NpcDialogueManager.Instance.CaptureState();
+        }
+
         Write(data);
         OnSaved?.Invoke(data);
         return data;
@@ -146,6 +150,10 @@ public class SaveManager : MonoBehaviour {
 
         if (ArenaManager.Instance != null) {
             ArenaManager.Instance.RestoreClearedArenas(data.clearedArenaIds);
+        }
+
+        if (NpcDialogueManager.Instance != null) {
+            NpcDialogueManager.Instance.RestoreState(data.npcDialogueCounts);
         }
     }
 

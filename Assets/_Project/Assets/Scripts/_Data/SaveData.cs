@@ -27,6 +27,7 @@ public class SaveData {
 
     public int memoryShardCount; // 보유한 기억 조각 수.
     public List<string> clearedArenaIds = new List<string>(); // 뒷세계 등 1회성 몬스터 구역 중 이미 클리어한 arenaId 목록.
+    public List<NpcDialogueSaveEntry> npcDialogueCounts = new List<NpcDialogueSaveEntry>(); // NPC별로 지금까지 대화를 건 횟수.
 }
 
 // 목표 하나의 진행도. Objective 자체를 직렬화하면 description·targetCount 같은
@@ -36,4 +37,11 @@ public class ObjectiveSaveEntry {
     public string id;
     public int currentCount;
     public bool isCompleted;
+}
+
+// NPC 한 명과 지금까지 나눈 대화 횟수. 대화 세트(1번째/2번째/3번째...)를 고르는 데 쓰인다.
+[Serializable]
+public class NpcDialogueSaveEntry {
+    public string npcId;
+    public int talkCount;
 }
