@@ -3182,12 +3182,7 @@ MonoBehaviour:
   verticalRoomPrefabs:
   - {fileID: 2174272057559773698, guid: 18feec7e333adcf49a744f749bfb33d8, type: 3}
   - {fileID: 7397688194327467117, guid: 0bbfea140b47bf144a29ef7e584d58cb, type: 3}
-  combatArenaRoomPrefabs:
-  - {fileID: 1879386364674827660, guid: 7fc1812100a54254a880a7c2fcbc303e, type: 3}
-  - {fileID: 6553220344825817565, guid: 8c369514c3b5df04ebbeb6c4cab6011f, type: 3}
-  - {fileID: 3219440247851559256, guid: acaeaa7761ce27546851d0b3e379290b, type: 3}
-  - {fileID: 2484219832389099375, guid: 40fcbfab502128a4da2aa2ae65ba96d0, type: 3}
-  - {fileID: 709265298092321541, guid: 94d5bee639c216744aac0db6360e637b, type: 3}
+  combatArenaRoomPrefabs: []
   secretBranchRoomPrefabs:
   - {fileID: 8304909610748091765, guid: 81bfa04fc23f2634c9c017617f4be545, type: 3}
   - {fileID: 163235589524332938, guid: 02f5bed818b5157479689c3b78ddc884, type: 3}
@@ -3200,13 +3195,14 @@ MonoBehaviour:
   exitRoomPrefab: {fileID: 923909201227254841, guid: 4e6a16835fc635746a2fe804afb7e6d5, type: 3}
   minHazardRooms: 1
   maxHazardRooms: 2
-  minCombatRooms: 2
-  maxCombatRooms: 3
+  minCombatRooms: 0
+  maxCombatRooms: 0
   minVerticalRooms: 1
   maxVerticalRooms: 2
   secretBranchChance: 0.5
   dungeonOrigin: {fileID: 1299754789}
   outsideBounds: {fileID: 657338888}
+  voidCatcherMargin: 4
 --- !u!4 &1299754789
 Transform:
   m_ObjectHideFlags: 0

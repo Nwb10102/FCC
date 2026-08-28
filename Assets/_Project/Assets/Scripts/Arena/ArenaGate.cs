@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Unity.Cinemachine;
 using UnityEngine;
 
 // 뒷세계(반전 세계) 입구. 상호작용하면 던전을 새로 생성해 플레이어를 들여보내고,
@@ -26,7 +25,7 @@ public class ArenaGate : MonoBehaviour, IInteractable {
     #endregion
     #region 컴포넌트 변수
 
-    CinemachineConfiner2D confiner;
+    ArenaCameraConfiner cameraConfiner;
     GameObject cachedInteractor;
     int combatRoomsRemaining; // 던전 한 판에 CombatArena가 여러 개 나올 수 있어(min~maxCombatRooms) 전부 클리어해야 보상을 준다.
 
@@ -68,7 +67,10 @@ public class ArenaGate : MonoBehaviour, IInteractable {
 
     void Awake() {
         var go = GameObject.Find("Player_Camera");
-        if (go != null) confiner = go.GetComponent<CinemachineConfiner2D>();
+        if (go != null) {
+            cameraConfiner = go.GetComponent<ArenaCameraConfiner>();
+            if (cameraConfiner == null) cameraConfiner = go.AddComponent<ArenaCameraConfiner>();
+        }
 
         if (string.IsNullOrEmpty(arenaId)) arenaId = name;
     }
@@ -84,10 +86,9 @@ public class ArenaGate : MonoBehaviour, IInteractable {
     }
 
     void ApplyConfiner(DungeonRoom entryRoom) {
-        if (confiner == null || entryRoom.cameraBounds == null) return;
+        if (cameraConfiner == null || entryRoom.cameraBounds == null) return;
 
-        confiner.BoundingShape2D = entryRoom.cameraBounds;
-        confiner.InvalidateBoundingShapeCache();
+        cameraConfiner.SetBounds(entryRoom.cameraBounds);
     }
 
     #endregion

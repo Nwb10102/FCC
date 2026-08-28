@@ -429,7 +429,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Player_move
   speed: 7
   maxSpeed: 7
-  jumpForce: 8
+  jumpForce: 11
+  doubleJumpEnabled: 0
   useFacingRotation: 0
   walkAnimator: {fileID: 8495944769156157280}
   groundCheck: {fileID: 5468832485090638928}

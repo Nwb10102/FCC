@@ -45,6 +45,10 @@ public class ArenaDungeonGenerator : MonoBehaviour {
     // 방 프리팹 안의 ArenaExitZone은 씬 오브젝트를 참조할 수 없어, 생성 직후 이 값을 주입해 준다.
     public Collider2D outsideBounds;
 
+    [Header("낙사 안전망")]
+    [Tooltip("방 바닥 아래로 얼마나 여유를 두고 안전망을 깔지.")]
+    public float voidCatcherMargin = 4f;
+
     #endregion
     #region 런타임 변수
 
@@ -125,6 +129,12 @@ public class ArenaDungeonGenerator : MonoBehaviour {
     // previous가 있으면 새 방의 entryAnchor를 previous의 exitAnchor 위치에 맞춰 통째로 옮긴다.
     // 소켓 정렬 방식이라 어떤 방 조합이라도 지형이 항상 이어진다.
     DungeonRoom SpawnRoom(GameObject prefab, DungeonRoom previous) {
+        // 풀이 비어 프리팹을 못 뽑은 경우(예: 카테고리 전체 삭제) 조용히 건너뛴다 - null을 Instantiate하면 예외가 난다.
+        if (prefab == null) {
+            Debug.LogWarning("[ArenaDungeonGenerator] 프리팹이 비어 있어 방을 생성하지 못했습니다.", this);
+            return null;
+        }
+
         GameObject instance = Instantiate(prefab, generatedRoot);
         DungeonRoom room = instance.GetComponent<DungeonRoom>();
 
@@ -140,12 +150,17 @@ public class ArenaDungeonGenerator : MonoBehaviour {
         }
 
         ConfigureExitZones(instance);
+        ConfigureVoidCatcher(instance, room);
         return room;
     }
 
     // 막다른 곁가지 방. parent의 branchAnchor에 맞춰 배치하고, 메인 경로 rooms 목록에는 넣지 않는다
     // (전투방 카운트·클리어 판정과 무관한 순수 보너스이기 때문).
     void SpawnBranch(GameObject prefab, DungeonRoom parent) {
+        if (prefab == null) {
+            Debug.LogWarning("[ArenaDungeonGenerator] 곁가지 프리팹이 비어 있어 방을 생성하지 못했습니다.", this);
+            return;
+        }
         if (parent.branchAnchor == null) return; // 이 방은 분기를 지원하지 않음.
 
         GameObject instance = Instantiate(prefab, generatedRoot);
@@ -160,12 +175,32 @@ public class ArenaDungeonGenerator : MonoBehaviour {
         }
 
         ConfigureExitZones(instance);
+        ConfigureVoidCatcher(instance, room);
     }
 
     void ConfigureExitZones(GameObject instance) {
         foreach (ArenaExitZone zone in instance.GetComponentsInChildren<ArenaExitZone>(true)) {
             zone.Configure(this, outsideBounds);
         }
+    }
+
+    // 방의 cameraBounds(방 전체 footprint)를 기준으로 그 아래에 트리거를 깔아, 발판 밖으로
+    // 떨어지면 이 방의 entryAnchor로 되돌려보낸다. 절차적으로 조립되는 모든 방(곁가지 포함)에
+    // 프리팹 수정 없이 동일하게 적용하기 위해 배치 시점에 코드로 생성한다.
+    void ConfigureVoidCatcher(GameObject instance, DungeonRoom room) {
+        if (room == null || room.cameraBounds == null) return;
+
+        Bounds bounds = room.cameraBounds.bounds;
+
+        GameObject catcher = new GameObject("VoidCatcher");
+        catcher.transform.SetParent(instance.transform);
+        catcher.transform.position = new Vector3(bounds.center.x, bounds.min.y - voidCatcherMargin, 0f);
+
+        BoxCollider2D col = catcher.AddComponent<BoxCollider2D>();
+        col.isTrigger = true;
+        col.size = new Vector2(bounds.size.x + voidCatcherMargin * 2f, voidCatcherMargin);
+
+        catcher.AddComponent<ArenaVoidCatcher>().Configure(room);
     }
 
     #endregion

@@ -11,7 +11,21 @@ public class Player_move : MonoBehaviour
     [Header("무브먼트 설정")]
     public float speed = 6f; // 플레이어 이동 스피드.
     public float maxSpeed = 5f; // 플레이어가 걸을 수 있는 최대 속도.
-    public float jumpForce = 10f; // 점프 파워.
+    public float jumpForce = 11f; // 점프 파워.
+
+    [Header("2단 점프")]
+    public bool doubleJumpEnabled = false; // 2단 점프 사용 가능 여부. 스킬/능력 해금 시 켜세요.
+    bool canDoubleJump; // 착지 후 아직 공중 점프를 쓰지 않았는지.
+
+    [Header("대시")]
+    // 스킬 시스템과 무관하게 항상 켜져 있는 기본 패시브 이동기.
+    public float dashSpeed = 18f; // 대시 중 유지하는 수평 속도.
+    public float dashDuration = 0.18f; // 대시가 지속되는 시간(초).
+    public float dashCooldown = 0.6f; // 대시 재사용 대기시간(초).
+
+    float dashTimer; // 0보다 크면 대시 중 - 이 동안은 SmoothMove 대신 고정 속도를 그대로 유지한다.
+    float dashCooldownTimer; // 남은 대시 쿨타임.
+    float dashDirection; // 대시 시작 시점의 좌우 방향(+1/-1)을 고정해, 도중에 방향키를 바꿔도 궤적이 흔들리지 않게 한다.
 
     private float koyoteTime = 0.2f; // 고요테 타임 설정
     private float koyoteTimeCounter; // 고요테 타임 카운터
@@ -86,8 +100,14 @@ public class Player_move : MonoBehaviour
         coyoteJumpTime(); // 코요테
         JumpBufferTime(); // 점프 버퍼 (착지 전 미리 누른 점프 입력 처리)
 
-        // immediateMove();
-        SmoothMove();
+        if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.fixedDeltaTime;
+
+        if (dashTimer > 0f) {
+            Dash();
+        } else {
+            // immediateMove();
+            SmoothMove();
+        }
     }
 
     #endregion
@@ -137,10 +157,27 @@ public class Player_move : MonoBehaviour
         rigid.AddForce(force, ForceMode2D.Impulse);
     }
 
+    void OnDash(InputValue value) {
+        if (!value.isPressed) return;
+        if (isMovementLocked || knockbackTimer > 0f) return;
+        if (dashTimer > 0f || dashCooldownTimer > 0f) return;
+
+        dashDirection = IsFacingRight ? 1f : -1f;
+        dashTimer = dashDuration;
+        dashCooldownTimer = dashCooldown;
+    }
+
+    // 대시 중에는 중력을 무시하고 수평으로만 미끄러지게 한다 - 세로 속도가 섞이면 대시 궤적이 지저분해진다.
+    void Dash() {
+        dashTimer -= Time.fixedDeltaTime;
+        rigid.linearVelocity = new Vector2(dashDirection * dashSpeed, 0f);
+    }
+
 // --TODO(박찬) : 점프 구현 (고요테 점프로 구현할 예정)
     void coyoteJumpTime() {
         if (isGrounded) {
             coyoteCounter = coyoteDuration;
+            canDoubleJump = true; // 땅에 닿아 있는 동안 공중 점프 1회분을 항상 충전해 둔다.
         } else {
             coyoteCounter -= Time.fixedDeltaTime;
         }
@@ -150,6 +187,9 @@ public class Player_move : MonoBehaviour
         if (!value.isPressed) return;
 
         if (coyoteCounter > 0f) {
+            ExecuteJump();
+        } else if (doubleJumpEnabled && canDoubleJump) {
+            canDoubleJump = false; // 착지하기 전까지 다시 쓸 수 없다.
             ExecuteJump();
         } else {
             jumpBufferCounter = jumpBufferDuration; // 공중에서 미리 누른 점프 입력을 버퍼에 저장, 착지 시 바로 점프.

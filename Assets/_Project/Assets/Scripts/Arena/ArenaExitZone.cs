@@ -1,4 +1,3 @@
-using Unity.Cinemachine;
 using UnityEngine;
 
 // 던전 입구방(뒤로 빠져나가기)과 출구방(클리어 후 나가기) 양쪽에 배치하는 공용 이탈 트리거.
@@ -15,16 +14,19 @@ public class ArenaExitZone : MonoBehaviour {
     public Collider2D outsideBounds; // 던전 밖(오버월드) 카메라 경계.
 
     [Tooltip("비워두면 씬에서 'Player_Camera'를 자동으로 찾습니다.")]
-    public CinemachineConfiner2D confiner;
+    public ArenaCameraConfiner cameraConfiner;
     public string playerTag = "Player";
 
     #endregion
     #region 유니티 라이프 사이클
 
     void Awake() {
-        if (confiner == null) {
+        if (cameraConfiner == null) {
             var go = GameObject.Find("Player_Camera");
-            if (go != null) confiner = go.GetComponent<CinemachineConfiner2D>();
+            if (go != null) {
+                cameraConfiner = go.GetComponent<ArenaCameraConfiner>();
+                if (cameraConfiner == null) cameraConfiner = go.AddComponent<ArenaCameraConfiner>();
+            }
         }
     }
 
@@ -37,10 +39,7 @@ public class ArenaExitZone : MonoBehaviour {
     void OnTriggerEnter2D(Collider2D other) {
         if (!other.CompareTag(playerTag)) return;
 
-        if (confiner != null && outsideBounds != null) {
-            confiner.BoundingShape2D = outsideBounds;
-            confiner.InvalidateBoundingShapeCache();
-        }
+        if (cameraConfiner != null && outsideBounds != null) cameraConfiner.SetBounds(outsideBounds);
 
         if (generator != null) generator.Teardown();
     }

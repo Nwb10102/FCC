@@ -1,4 +1,3 @@
-using Unity.Cinemachine;
 using UnityEngine;
 
 // 뒷세계 던전을 이루는 방 프리팹 하나. entryAnchor / exitAnchor로 소켓을 규격화해
@@ -29,7 +28,7 @@ public class DungeonRoom : MonoBehaviour {
     #endregion
     #region 컴포넌트 변수
 
-    CinemachineConfiner2D confiner;
+    ArenaCameraConfiner cameraConfiner;
     bool combatStarted; // 같은 방에 다시 들어와도 몬스터가 중복 스폰되지 않도록 막는 가드.
 
     #endregion
@@ -37,7 +36,10 @@ public class DungeonRoom : MonoBehaviour {
 
     void Awake() {
         var go = GameObject.Find("Player_Camera");
-        if (go != null) confiner = go.GetComponent<CinemachineConfiner2D>();
+        if (go != null) {
+            cameraConfiner = go.GetComponent<ArenaCameraConfiner>();
+            if (cameraConfiner == null) cameraConfiner = go.AddComponent<ArenaCameraConfiner>();
+        }
 
         if (roomTrigger == null) roomTrigger = GetComponent<Collider2D>();
     }
@@ -45,10 +47,7 @@ public class DungeonRoom : MonoBehaviour {
     void OnTriggerEnter2D(Collider2D other) {
         if (!other.CompareTag("Player")) return;
 
-        if (confiner != null && cameraBounds != null) {
-            confiner.BoundingShape2D = cameraBounds;
-            confiner.InvalidateBoundingShapeCache();
-        }
+        if (cameraConfiner != null && cameraBounds != null) cameraConfiner.SetBounds(cameraBounds);
 
         if (role == RoomRole.CombatArena) StartCombatLockIn();
     }
