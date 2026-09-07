@@ -201,34 +201,55 @@ public static class DungeonRoomPrefabBuilder {
     #endregion
     #region 방 빌드 — 수직 갱도
 
-    // 지그재그 계단으로 위층까지 올라간다. 바닥은 전폭이라 헛디뎌도 죽지 않고 다시 오르면 된다.
+    // 발판 하나의 배치값. YUp 은 방 바닥면(g) 기준 상대 높이.
+    readonly struct VPlat {
+        public readonly float X, YUp, W;
+        public VPlat(float x, float yUp, float w) { X = x; YUp = yUp; W = w; }
+    }
+
+    // A: 오른쪽으로 올랐다가 왼쪽으로 되꺾어 다시 오른쪽 출구로 가는 갈지자 경사로.
+    // 중간에 넓은 쉼터(6번)를 두고, 되꺾이는 지점에 곁가지 니치를 붙였다. 헛디뎌도 아래 경사면에
+    // 걸리거나 바닥으로 떨어져 다시 오르면 되도록 단차는 2.4 이하로만 둔다.
     static void BuildVerticalA() {
-        BuildVertical("Room_Vertical_A", platWidth: 5f, rise: Step, count: 10);
+        VPlat[] path = {
+            new(-8f, 2.6f, 5f),  new(-3.5f, 4.6f, 5f), new(1f, 6.6f, 5f),   new(5.5f, 8.6f, 6f),
+            new(8f, 11f, 4f),    new(3f, 12.8f, 7f),
+            new(-2.5f, 14.8f, 5f), new(-7.5f, 16.8f, 5f), new(-9f, 19.2f, 4f),
+            new(-4.5f, 21f, 4f), new(0.5f, 22.9f, 4f), new(5.5f, 24.9f, 5f), new(9.5f, 26.9f, 5f),
+        };
+        BuildVertical("Room_Vertical_A", path, alcove: new VPlat(-11f, 20f, 3f));
     }
 
+    // B: S자로 크게 휘어 오르며, 가운데에 좁은 디딤돌 구간(6~8번)을 끼워 리듬에 강약을 준다.
+    // 넓은 쉼터를 두 곳(5번, 10번) 둔다.
     static void BuildVerticalB() {
-        BuildVertical("Room_Vertical_B", platWidth: 6f, rise: 2.2f, count: 11);
+        VPlat[] path = {
+            new(7f, 2.4f, 5f),   new(2.5f, 4.4f, 6f),  new(-2.5f, 6.2f, 6f), new(-8f, 8.2f, 5f),
+            new(-4.5f, 10.4f, 7f),
+            new(0.5f, 12.4f, 3f), new(5f, 14.2f, 2.5f), new(9f, 16f, 4f),
+            new(4.5f, 18f, 6f),  new(-0.5f, 20f, 8f),
+            new(-5.5f, 22f, 5f), new(-1f, 24f, 4f),   new(4f, 26f, 5f),     new(9f, 28f, 5f),
+        };
+        BuildVertical("Room_Vertical_B", path, alcove: new VPlat(-11.5f, 9.2f, 3f));
     }
 
-    static void BuildVertical(string prefabName, float platWidth, float rise, int count) {
-        const float w = 22f, h = 32f;
+    static void BuildVertical(string prefabName, VPlat[] path, VPlat alcove) {
+        const float w = 28f, h = 38f;
         float g = GroundY(h);
         float a = AnchorY(h);
 
         GameObject root = NewRoom(prefabName, w, h, out BoxCollider2D trigger);
         Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
 
-        float y = g + rise;
-        float topY = y;
-        for (int i = 0; i < count; i++) {
-            float x = (i % 2 == 0) ? 2.5f : -2.5f;
-            bool last = i == count - 1;
-            float pw = last ? platWidth + 2f : platWidth;
-            float px = last ? 0f : x;
-            Solid(root, $"Plat_{i + 1}", new Vector3(px, y, 0f), new Vector2(pw, PlatThick));
-            topY = y;
-            y += rise;
+        for (int i = 0; i < path.Length; i++) {
+            VPlat p = path[i];
+            Solid(root, $"Plat_{i + 1}", new Vector3(p.X, g + p.YUp, 0f), new Vector2(p.W, PlatThick));
         }
+
+        // 오르는 길에서 살짝 벗어난 막다른 니치. 곁가지(비밀방)가 여기 붙고, 없어도 잠깐 쉬어 가는 자리.
+        Solid(root, "Alcove", new Vector3(alcove.X, g + alcove.YUp, 0f), new Vector2(alcove.W, PlatThick));
+
+        float topY = g + path[path.Length - 1].YUp;
 
         // 맨 위 발판에서 오른쪽 퇴장 구멍까지 이어 주는 선반. 없으면 꼭대기에서 다음 방까지 허공이 뜬다.
         Solid(root, "ExitLedge", new Vector3(w / 4f + 1f, topY, 0f), new Vector2(w / 2f, PlatThick));
@@ -247,7 +268,7 @@ public static class DungeonRoomPrefabBuilder {
 
         Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 3f, a, 0f));
         Transform exit = Anchor(root, "ExitAnchor", new Vector3(0f, topY + 1.4f, 0f));
-        Transform branch = Anchor(root, "BranchAnchor", new Vector3(0f, a + rise * (count / 2), 0f));
+        Transform branch = Anchor(root, "BranchAnchor", new Vector3(alcove.X, g + alcove.YUp + 0.3f, 0f));
         Transform respawn = Anchor(root, "RespawnPoint", new Vector3(-w / 2f + 3f, a, 0f));
 
         WireRoom(root, DungeonRoom.RoomRole.VerticalClimb, entry, exit, branch, respawn, trigger, null, null);
