@@ -4,7 +4,7 @@ using UnityEngine;
 // 방을 순서대로 이어 붙일 수 있게 한다. 정렬은 두 앵커의 월드 좌표를 맞추는 것뿐이라 좌우뿐 아니라
 // 상하로도 그대로 동작한다(VerticalClimb 는 바닥→천장으로 앵커를 둔다).
 //
-// 플레이어가 이 방 트리거에 들어온 순간 카메라 전환·리스폰 지점 갱신·전투 락인을 한 번에 처리한다.
+// 플레이어가 이 방 트리거에 들어온 순간 리스폰 지점 갱신·전투 락인을 한 번에 처리한다.
 // **방 전체를 덮는 Is Trigger 콜라이더를 이 오브젝트(루트)에 붙이세요.**
 public class DungeonRoom : MonoBehaviour {
     public enum RoomRole {
@@ -38,9 +38,6 @@ public class DungeonRoom : MonoBehaviour {
     public DungeonRoomSpawner spawner;
     public Collider2D lockBarrier; // 입장 시 켜져(통행 차단) 전멸하면 꺼진다.
 
-    [Header("카메라")]
-    public DungeonRoomCamera roomCamera; // 비우면 이 오브젝트에서 GetComponent 로 찾는다.
-
     #endregion
     #region 조회
 
@@ -57,21 +54,16 @@ public class DungeonRoom : MonoBehaviour {
 
     void Awake() {
         if (roomTrigger == null) roomTrigger = GetComponent<Collider2D>();
-        if (roomCamera == null) roomCamera = GetComponent<DungeonRoomCamera>();
         if (spawner == null) spawner = GetComponent<DungeonRoomSpawner>();
     }
 
     void OnTriggerEnter2D(Collider2D other) {
         if (!other.CompareTag(playerTag)) return;
 
-        // 1. 카메라: 이 방 기본값을 최하위 레이어로 세운다.
-        DungeonCameraDirector director = DungeonCameraDirector.GetOrCreate();
-        director.SetRoom(this, roomCamera != null ? roomCamera.BuildRequest() : DefaultCameraRequest());
-
-        // 2. 리스폰: 현재 방을 이 방으로.
+        // 1. 리스폰: 현재 방을 이 방으로.
         if (DungeonRespawnController.Instance != null) DungeonRespawnController.Instance.SetCurrentRoom(this);
 
-        // 3. 전투방이면 락인.
+        // 2. 전투방이면 락인.
         if (role == RoomRole.CombatArena) StartCombatLockIn();
     }
 
@@ -90,16 +82,6 @@ public class DungeonRoom : MonoBehaviour {
 
     void HandleCombatCleared() {
         if (lockBarrier != null) lockBarrier.enabled = false;
-    }
-
-    #endregion
-    #region 도우미
-
-    static DungeonCameraRequest DefaultCameraRequest() {
-        return new DungeonCameraRequest {
-            mode = DungeonCameraFollowMode.FollowPlayer,
-            transitionDuration = 0.5f,
-        };
     }
 
     #endregion

@@ -23,6 +23,10 @@ public class DungeonGate : MonoBehaviour, IInteractable {
     // 던전에서 걸어 나오거나 죽었을 때 플레이어가 설 위치. **빈 오브젝트를 만들어 연결하세요.** 비우면 이 게이트 위치.
     public Transform outsideReturnPoint;
 
+    [Header("목표")]
+    // 비어 있지 않으면 던전을 완전히 클리어한 순간 이 목표를 완료 처리한다(SaveMirror·DialogueTriggerZone 과 같은 방식).
+    public string objectiveId;
+
     [Header("보상 · 사망 처리")]
     public int memoryShardReward = 1;
 
@@ -80,14 +84,11 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         // 던전 안 낙사·사망 처리 시작.
         DungeonRespawnController.Begin(cachedPlayer, generator.fallYThreshold, fallDamage, HandlePlayerDeath);
 
-        // 입구방으로 이동 + 첫 방 카메라·리스폰.
+        // 입구방으로 이동 + 첫 방 리스폰.
         DungeonRoom entry = rooms[0];
         WarpTo(cachedPlayer, entry.entryAnchor != null ? entry.entryAnchor.position : entry.transform.position);
 
         if (DungeonRespawnController.Instance != null) DungeonRespawnController.Instance.SetCurrentRoom(entry);
-
-        DungeonCameraDirector director = DungeonCameraDirector.GetOrCreate();
-        if (entry.roomCamera != null) director.SetRoom(entry, entry.roomCamera.BuildRequest());
     }
 
     #endregion
@@ -113,6 +114,10 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         if (cachedPlayer != null && cachedPlayer.TryGetComponent(out Player_MemoryShardInventory shards)) {
             shards.Add(memoryShardReward);
         }
+
+        if (!string.IsNullOrEmpty(objectiveId) && ObjectiveManager.Instance != null) {
+            ObjectiveManager.Instance.CompleteObjective(objectiveId);
+        }
     }
 
     #endregion
@@ -133,7 +138,6 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         inDungeon = false;
 
         if (generator != null) generator.Teardown();
-        if (DungeonCameraDirector.Instance != null) DungeonCameraDirector.Instance.ResetToDefault();
         if (DungeonRespawnController.Instance != null) DungeonRespawnController.Instance.Dispose();
 
         Vector3 pos = outsideReturnPoint != null ? outsideReturnPoint.position : transform.position;

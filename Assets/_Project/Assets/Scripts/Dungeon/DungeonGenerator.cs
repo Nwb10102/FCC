@@ -9,12 +9,25 @@ public class DungeonMonsterOption {
     [Min(0f)] public float weight = 1f;
 }
 
+// 레이아웃 한 구간(segment). "이 역할의 방을 minRooms~maxRooms 개 이어 붙이고, 각 방마다
+// secretBranchChance 확률로 곁가지를 단다." 구간을 인스펙터에서 여러 개 쌓아 던전의 리듬을 짠다.
+// 비워 두면 DefaultSequence() 가 대신 쓰인다(입구·기믹·전투를 번갈아 끼운 기본 리듬).
+[Serializable]
+public class DungeonSegment {
+    public string label; // 인스펙터에서 구간을 알아보기 위한 메모. 로직에는 쓰이지 않는다.
+    public DungeonRoom.RoomRole category = DungeonRoom.RoomRole.PlatformingHazard;
+    [Min(1)] public int minRooms = 1;
+    [Min(1)] public int maxRooms = 1;
+    [Range(0f, 1f)] public float secretBranchChance;
+}
+
 // 역할별 방을 소켓 정렬로 이어 붙이는 던전 생성기.
-// 항상 [입구] → [플랫포밍 통로] → (선택)[곁가지 보너스] → [전투방] → [수직 갱도] → [출구] 순서로 조립한다.
-// 순서를 고정하고 곁가지 유무만 랜덤화하는 이유는, 2D 플랫포머 특성상 어떤 조합이라도 지형이 항상
-// 이어지도록 보장하기 위함이다(순수 알고리즘 타일 생성과 달리 클리어 불가능한 배치가 나올 수 없다).
+// 항상 [입구] 로 시작해 [출구] 로 끝나며, 그 사이는 sequence(비면 DefaultSequence)에 적힌 구간을
+// 순서대로 펼친다. 순서를 데이터로 빼 두는 이유는, 2D 플랫포머 특성상 어떤 조합이라도 지형이 항상
+// 이어지도록 보장하면서(순수 알고리즘 타일 생성과 달리 클리어 불가능한 배치가 나올 수 없다)
+// 챕터마다 다른 리듬(기믹을 더 길게 / 전투를 더 촘촘히)을 코드 수정 없이 줄 수 있기 때문이다.
 //
-// 방 프리팹은 "몬스터가 놓일 수 있는 자리 / 카메라 / 리스폰" 을 정의하고, 이 생성기는 "그중 얼마를 실제로
+// 방 프리팹은 "몬스터가 놓일 수 있는 자리 / 지형 / 리스폰" 을 정의하고, 이 생성기는 "그중 얼마를 실제로
 // 쓸지(몬스터 배율)" 와 "던전 밖 경계 · 낙사 높이" 같은 던전 단위 값을 정한다.
 public class DungeonGenerator : MonoBehaviour {
     #region 인스펙터 변수 — 방 프리팹 풀
@@ -28,16 +41,11 @@ public class DungeonGenerator : MonoBehaviour {
     public List<GameObject> exitRoomPrefabs = new();
 
     #endregion
-    #region 인스펙터 변수 — 방 개수
+    #region 인스펙터 변수 — 레이아웃 구간
 
-    [Header("방 개수")]
-    [Range(1, 4)] public int minHazardRooms = 1;
-    [Range(1, 4)] public int maxHazardRooms = 2;
-    [Range(1, 4)] public int minCombatRooms = 1;
-    [Range(1, 4)] public int maxCombatRooms = 2;
-    [Range(1, 4)] public int minVerticalRooms = 1;
-    [Range(1, 4)] public int maxVerticalRooms = 2;
-    [Range(0f, 1f)] public float secretBranchChance = 0.6f;
+    [Header("레이아웃 구간 (비우면 기본 리듬 사용)")]
+    [Tooltip("입구·출구를 뺀 가운데 구간만 적는다. 첫 구간이 입구가, 마지막 구간이 출구가 아니면 자동으로 앞뒤에 붙인다.")]
+    public List<DungeonSegment> sequence = new();
 
     #endregion
     #region 인스펙터 변수 — 몬스터 양 (던전 단위)
@@ -72,10 +80,29 @@ public class DungeonGenerator : MonoBehaviour {
     // 플레이어가 입구/출구 이탈 트리거를 밟았을 때. DungeonGate 가 구독해 밖으로 되돌린다.
     public event Action OnDungeonExited;
 
+    // 레이아웃이 완성됐을 때(방 목록, 전투방 수). 진행 표시 UI 등이 구독한다.
+    public event Action<IReadOnlyList<DungeonRoom>, int> OnDungeonGenerated;
+
     #endregion
     #region 런타임 변수
 
     Transform generatedRoot;
+
+    #endregion
+    #region 기본 리듬
+
+    // 인스펙터 sequence 가 비었을 때 쓰는 기본 구간 배열.
+    // 기믹과 전투를 번갈아 끼워 "기믹 다 하고 전투 다 하는" 밋밋한 직선 구조를 피한다.
+    static List<DungeonSegment> DefaultSequence() {
+        return new List<DungeonSegment> {
+            new() { label = "도입 기믹",   category = DungeonRoom.RoomRole.PlatformingHazard, minRooms = 1, maxRooms = 1, secretBranchChance = 0.35f },
+            new() { label = "첫 교전",     category = DungeonRoom.RoomRole.CombatArena,      minRooms = 1, maxRooms = 1 },
+            new() { label = "중반 기믹",   category = DungeonRoom.RoomRole.PlatformingHazard, minRooms = 1, maxRooms = 2, secretBranchChance = 0.5f },
+            new() { label = "중반 교전",   category = DungeonRoom.RoomRole.CombatArena,      minRooms = 1, maxRooms = 2 },
+            new() { label = "수직 갱도",   category = DungeonRoom.RoomRole.VerticalClimb,    minRooms = 1, maxRooms = 1, secretBranchChance = 0.6f },
+            new() { label = "마무리 기믹", category = DungeonRoom.RoomRole.PlatformingHazard, minRooms = 1, maxRooms = 1, secretBranchChance = 0.35f },
+        };
+    }
 
     #endregion
     #region 생성 · 해체
@@ -88,40 +115,40 @@ public class DungeonGenerator : MonoBehaviour {
 
         var rooms = new List<DungeonRoom>();
 
-        // 1. 입구
+        // 1. 입구 — 항상 맨 앞.
         DungeonRoom current = SpawnRoom(PickPrefab(entryRoomPrefabs), null);
         if (current != null) rooms.Add(current);
 
-        // 2. 플랫포밍 기믹방
-        int hazardCount = UnityEngine.Random.Range(minHazardRooms, maxHazardRooms + 1);
-        foreach (GameObject prefab in PickPrefabs(hazardRoomPrefabs, hazardCount)) {
-            current = SpawnRoom(prefab, current);
-            if (current == null) continue;
-            rooms.Add(current);
-            TrySpawnSecretBranch(current);
+        // 2. 가운데 구간 펼치기.
+        List<DungeonSegment> steps = (sequence != null && sequence.Count > 0) ? sequence : DefaultSequence();
+        foreach (DungeonSegment step in steps) {
+            if (step == null) continue;
+            if (step.category == DungeonRoom.RoomRole.Entry || step.category == DungeonRoom.RoomRole.Exit) continue; // 입·출구는 여기서 만들지 않는다.
+
+            int lo = Mathf.Max(1, Mathf.Min(step.minRooms, step.maxRooms));
+            int hi = Mathf.Max(lo, Mathf.Max(step.minRooms, step.maxRooms));
+            int count = UnityEngine.Random.Range(lo, hi + 1);
+
+            foreach (GameObject prefab in PickPrefabs(PoolFor(step.category), count)) {
+                current = SpawnRoom(prefab, current);
+                if (current == null) continue;
+                rooms.Add(current);
+                TrySpawnSecretBranch(current, step.secretBranchChance);
+            }
         }
 
-        // 3. 전투방
-        int combatCount = UnityEngine.Random.Range(minCombatRooms, maxCombatRooms + 1);
-        foreach (GameObject prefab in PickPrefabs(combatRoomPrefabs, combatCount)) {
-            current = SpawnRoom(prefab, current);
-            if (current != null) rooms.Add(current);
-        }
-
-        // 4. 수직 갱도
-        int verticalCount = UnityEngine.Random.Range(minVerticalRooms, maxVerticalRooms + 1);
-        foreach (GameObject prefab in PickPrefabs(verticalRoomPrefabs, verticalCount)) {
-            current = SpawnRoom(prefab, current);
-            if (current == null) continue;
-            rooms.Add(current);
-            TrySpawnSecretBranch(current);
-        }
-
-        // 5. 출구
+        // 3. 출구 — 항상 맨 뒤.
         current = SpawnRoom(PickPrefab(exitRoomPrefabs), current);
         if (current != null) rooms.Add(current);
 
         InjectRoomConfig();
+
+        int combatRooms = 0;
+        foreach (DungeonRoom r in rooms) {
+            if (r.role == DungeonRoom.RoomRole.CombatArena && r.spawner != null) combatRooms++;
+        }
+        OnDungeonGenerated?.Invoke(rooms, combatRooms);
+
         return rooms;
     }
 
@@ -161,6 +188,18 @@ public class DungeonGenerator : MonoBehaviour {
     #endregion
     #region 방 배치
 
+    List<GameObject> PoolFor(DungeonRoom.RoomRole role) {
+        return role switch {
+            DungeonRoom.RoomRole.Entry => entryRoomPrefabs,
+            DungeonRoom.RoomRole.PlatformingHazard => hazardRoomPrefabs,
+            DungeonRoom.RoomRole.CombatArena => combatRoomPrefabs,
+            DungeonRoom.RoomRole.VerticalClimb => verticalRoomPrefabs,
+            DungeonRoom.RoomRole.SecretBranch => secretRoomPrefabs,
+            DungeonRoom.RoomRole.Exit => exitRoomPrefabs,
+            _ => hazardRoomPrefabs,
+        };
+    }
+
     // previous 가 있으면 새 방의 entryAnchor 를 previous 의 exitAnchor 위치에 맞춰 통째로 옮긴다.
     DungeonRoom SpawnRoom(GameObject prefab, DungeonRoom previous) {
         if (prefab == null) {
@@ -189,9 +228,9 @@ public class DungeonGenerator : MonoBehaviour {
         return room;
     }
 
-    void TrySpawnSecretBranch(DungeonRoom parent) {
+    void TrySpawnSecretBranch(DungeonRoom parent, float chance) {
         if (parent == null || parent.branchAnchor == null) return;
-        if (UnityEngine.Random.value >= secretBranchChance) return;
+        if (chance <= 0f || UnityEngine.Random.value >= chance) return;
 
         GameObject prefab = PickPrefab(secretRoomPrefabs);
         if (prefab == null) return;
