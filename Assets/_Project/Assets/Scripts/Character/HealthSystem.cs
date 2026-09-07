@@ -19,6 +19,11 @@ public class Health : MonoBehaviour
     public event Action<int, Vector2> OnDamaged; // 데미지가 실제로 적용된 순간 (피해량, 공격 원점) 전달. HitReactor/HitFlash/HealthBar가 구독.
     public event Action<Vector2> OnDeath; // 사망한 순간 (마지막 공격 원점) 전달. HitReactor가 구독해 사망 연출을 재생.
 
+    // 사망 직전에 물어보는 옵트인 훅. 던전처럼 "죽어도 게임오버가 아닌" 구역이 사망을 가로채기 위한 것.
+    // true를 반환하면 Die()를 건너뛴다 (체력 복구는 가로챈 쪽이 SetHealth로 직접 책임진다).
+    // 기본값 null이라 평소에는 기존 동작(Die → Destroy)이 그대로 유지된다. 하나만 등록된다.
+    public Func<Vector2, bool> DeathInterceptor;
+
     #endregion
     #region 컴포넌트 변수
 
@@ -61,6 +66,9 @@ public class Health : MonoBehaviour
         OnDamaged?.Invoke(damage, sourcePosition);
 
         if (currentHealth <= 0) {
+            // 던전 등에서 사망을 가로챌 기회. 훅이 true를 반환하면 Die()를 건너뛴다. 평소엔 null이라 그대로 진행된다.
+            if (DeathInterceptor != null && DeathInterceptor(sourcePosition)) return;
+
             Die(sourcePosition);
             return;
         }
