@@ -91,8 +91,8 @@ public class SaveManager : MonoBehaviour {
             data.startedMissions = ObjectiveManager.Instance.CaptureStartedMissions();
         }
 
-        if (ArenaManager.Instance != null) {
-            data.clearedArenaIds = ArenaManager.Instance.CaptureClearedArenas();
+        if (DungeonManager.Instance != null) {
+            data.clearedDungeonIds = DungeonManager.Instance.CaptureClearedDungeons();
         }
 
         if (NpcDialogueManager.Instance != null) {
@@ -148,8 +148,8 @@ public class SaveManager : MonoBehaviour {
             ObjectiveManager.Instance.RestoreState(data.objectives, data.startedMissions);
         }
 
-        if (ArenaManager.Instance != null) {
-            ArenaManager.Instance.RestoreClearedArenas(data.clearedArenaIds);
+        if (DungeonManager.Instance != null) {
+            DungeonManager.Instance.RestoreClearedDungeons(data.clearedDungeonIds);
         }
 
         if (NpcDialogueManager.Instance != null) {
