@@ -217,8 +217,6 @@ public static class DungeonRoomPrefabBuilder {
 
         GameObject root = NewRoom(prefabName, w, h, out BoxCollider2D trigger);
         Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
-        Solid(root, "Wall_L", new Vector3(-w / 2f + WallThick / 2f, 0f, 0f), new Vector2(WallThick, h));
-        Solid(root, "Wall_R", new Vector3(w / 2f - WallThick / 2f, 0f, 0f), new Vector2(WallThick, h));
 
         float y = g + rise;
         float topY = y;
@@ -231,6 +229,21 @@ public static class DungeonRoomPrefabBuilder {
             topY = y;
             y += rise;
         }
+
+        // 맨 위 발판에서 오른쪽 퇴장 구멍까지 이어 주는 선반. 없으면 꼭대기에서 다음 방까지 허공이 뜬다.
+        Solid(root, "ExitLedge", new Vector3(w / 4f + 1f, topY, 0f), new Vector2(w / 2f, PlatThick));
+
+        // 옆벽은 헛디딤 방지용이지만 통째로 세우면 앞뒤 방과 이어지지 않는다.
+        // 왼쪽은 아래(입장 통로)를, 오른쪽은 위(퇴장 통로)를 비운 반쪽짜리로 세운다.
+        float roomTop = h / 2f;
+        float roomBottom = -h / 2f;
+        float entryOpeningTop = g + 4.5f;          // 왼쪽 아래로 걸어 들어오는 구멍의 천장.
+        float exitOpeningBottom = topY - 1.5f;     // 오른쪽 위로 걸어 나가는 구멍의 바닥(맨 위 발판 아래).
+
+        Solid(root, "Wall_L", new Vector3(-w / 2f + WallThick / 2f, (entryOpeningTop + roomTop) / 2f, 0f),
+            new Vector2(WallThick, roomTop - entryOpeningTop));
+        Solid(root, "Wall_R", new Vector3(w / 2f - WallThick / 2f, (roomBottom + exitOpeningBottom) / 2f, 0f),
+            new Vector2(WallThick, exitOpeningBottom - roomBottom));
 
         Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 3f, a, 0f));
         Transform exit = Anchor(root, "ExitAnchor", new Vector3(0f, topY + 1.4f, 0f));
