@@ -187,6 +187,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 1
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &1231825216471586243
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,6 +750,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 1
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &3803400858776217585
 GameObject:
   m_ObjectHideFlags: 0
@@ -1200,6 +1202,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 1
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &5290730105300840328
 GameObject:
   m_ObjectHideFlags: 0
@@ -1387,6 +1390,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 0.9
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &5391254297353683884
 GameObject:
   m_ObjectHideFlags: 0
@@ -1605,6 +1609,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 0.9
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &6224775027113565465
 GameObject:
   m_ObjectHideFlags: 0
@@ -1964,6 +1969,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 1
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &7477618746828922121
 GameObject:
   m_ObjectHideFlags: 0
@@ -2331,6 +2337,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 0.9
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &8753489615565252505
 GameObject:
   m_ObjectHideFlags: 0
@@ -2518,6 +2525,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CrumblingPlatform
   fallDelay: 0.9
   respawnDelay: 1.5
+  playerTag: Player
 --- !u!1 &9079851436360735025
 GameObject:
   m_ObjectHideFlags: 0
