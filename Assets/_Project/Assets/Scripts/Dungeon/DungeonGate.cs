@@ -43,6 +43,11 @@ public class DungeonGate : MonoBehaviour, IInteractable {
     // 클리어하고 나온 순간 부서지는 전신 거울. 비우면 이 오브젝트와 자식에서 찾는다.
     public DungeonGateMirror mirror;
 
+    [Header("진입 연출")]
+    // 던전에 들어선 순간 화면 위에서 내려오는 지역 이름. 비우면 표시하지 않는다.
+    public string areaTitle = "뒷세계";
+    public string areaSubtitle;
+
     #endregion
     #region 런타임 변수
 
@@ -96,6 +101,9 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         WarpTo(cachedPlayer, entry.entryAnchor != null ? entry.entryAnchor.position : entry.transform.position);
 
         if (DungeonRespawnController.Instance != null) DungeonRespawnController.Instance.SetCurrentRoom(entry);
+
+        // 뒷세계에 발을 들인 순간 지역 이름을 화면 위에서 흘려보낸다.
+        if (!string.IsNullOrEmpty(areaTitle)) AreaTitleView.Announce(areaTitle, areaSubtitle);
     }
 
     #endregion
