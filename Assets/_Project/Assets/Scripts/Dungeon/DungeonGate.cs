@@ -34,7 +34,10 @@ public class DungeonGate : MonoBehaviour, IInteractable {
     [Range(0f, 1f)] public float deathHealthRestoreRatio = 1f;
 
     [Tooltip("낙사할 때마다 깎을 자아 게이지. 0이면 페널티 없음.")]
-    public int fallDamage = 0;
+    public int fallDamage = 10;
+
+    [Tooltip("낙사로 복귀한 직후 무적으로 버틸 시간(초). 복귀 지점 근처의 몬스터에게 연달아 맞는 것을 막는다.")]
+    public float fallInvincibleTime = 3f;
 
     #endregion
     #region 런타임 변수
@@ -82,7 +85,7 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         generator.OnDungeonExited += HandleWalkOut;
 
         // 던전 안 낙사·사망 처리 시작.
-        DungeonRespawnController.Begin(cachedPlayer, generator.fallYThreshold, fallDamage, HandlePlayerDeath);
+        DungeonRespawnController.Begin(cachedPlayer, generator.fallYThreshold, fallDamage, fallInvincibleTime, HandlePlayerDeath);
 
         // 입구방으로 이동 + 첫 방 리스폰.
         DungeonRoom entry = rooms[0];

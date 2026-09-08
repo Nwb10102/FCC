@@ -19,6 +19,11 @@ public class Health : MonoBehaviour
     public event Action<int, Vector2> OnDamaged; // 데미지가 실제로 적용된 순간 (피해량, 공격 원점) 전달. HitReactor/HitFlash/HealthBar가 구독.
     public event Action<Vector2> OnDeath; // 사망한 순간 (마지막 공격 원점) 전달. HitReactor가 구독해 사망 연출을 재생.
 
+    // 무적이 걸리고 풀리는 순간 (현재 무적 여부) 전달. InvincibleBlink가 구독해 깜빡임을 켜고 끈다.
+    // 매 프레임 IsInvincible을 폴링하지 않고 이벤트로 알리는 이유는, 연출 쪽이 무적 시작·종료
+    // 시점을 정확히 알아야 깜빡이다가 어중간한 상태로 굳는 일이 없기 때문이다.
+    public event Action<bool> OnInvincibleChanged;
+
     // 사망 직전에 물어보는 옵트인 훅. 던전처럼 "죽어도 게임오버가 아닌" 구역이 사망을 가로채기 위한 것.
     // true를 반환하면 Die()를 건너뛴다 (체력 복구는 가로챈 쪽이 SetHealth로 직접 책임진다).
     // 기본값 null이라 평소에는 기존 동작(Die → Destroy)이 그대로 유지된다. 하나만 등록된다.
@@ -37,6 +42,10 @@ public class Health : MonoBehaviour
     public int CurrentHealth => currentHealth;
     public bool IsDead => isDead;
 
+    // 지금 무적인지. 피격 무적뿐 아니라 낙사 복귀 무적·연출용 무적까지 전부 이 하나로 모으므로,
+    // 무적을 봐야 하는 쪽(연출·AI·기믹)은 어디서 걸린 무적인지 신경 쓰지 않고 이 값만 읽으면 된다.
+    public bool IsInvincible => isInvincible;
+
     #endregion
     #region 유니티 라이프 사이클
 
@@ -50,6 +59,7 @@ public class Health : MonoBehaviour
         invincibleTimer -= Time.deltaTime;
         if (invincibleTimer <= 0f) {
             isInvincible = false;
+            OnInvincibleChanged?.Invoke(false);
         }
     }
 
@@ -74,16 +84,38 @@ public class Health : MonoBehaviour
         }
 
         // invincibleTime이 0이면 무적을 아예 걸지 않는다. 한 프레임짜리 무적도 남기지 않아 모든 타격이 확실히 들어간다.
-        if (invincibleTime <= 0f) return;
-
-        isInvincible = true;
-        invincibleTimer = invincibleTime;
+        SetInvincible(invincibleTime);
     }
 
     void Die(Vector2 sourcePosition) {
         isDead = true;
         OnDeath?.Invoke(sourcePosition); // 오브젝트가 파괴되기 전에 사망 연출을 띄울 기회를 준다.
         Destroy(gameObject);
+    }
+
+    #endregion
+    #region 무적
+
+    // 지정한 시간만큼 무적을 건다. 낙사 복귀처럼 피격 무적(invincibleTime)과 길이가 다른 무적을
+    // 밖에서 걸 때 쓴다. 이미 무적이면 남은 시간과 비교해 긴 쪽을 남긴다 — 0.9초짜리 피격 무적이
+    // 3초짜리 낙사 무적을 덮어써서 줄여 버리면 안 되기 때문이다.
+    public void SetInvincible(float duration) {
+        if (isDead || duration <= 0f) return;
+
+        invincibleTimer = Mathf.Max(invincibleTimer, duration);
+        if (isInvincible) return;
+
+        isInvincible = true;
+        OnInvincibleChanged?.Invoke(true);
+    }
+
+    // 무적을 즉시 푼다. 연출이 끝나기 전에 무적을 걷어야 하는 경우를 위해 둔다.
+    public void ClearInvincible() {
+        if (!isInvincible) return;
+
+        isInvincible = false;
+        invincibleTimer = 0f;
+        OnInvincibleChanged?.Invoke(false);
     }
 
     #endregion

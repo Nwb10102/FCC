@@ -249,6 +249,7 @@ GameObject:
   - component: {fileID: 4220399929488923947}
   - component: {fileID: 2981627125239114588}
   - component: {fileID: 24005028119109974}
+  - component: {fileID: 905950734729212233}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -431,6 +432,9 @@ MonoBehaviour:
   maxSpeed: 7
   jumpForce: 11
   doubleJumpEnabled: 0
+  dashSpeed: 18
+  dashDuration: 0.18
+  dashCooldown: 0.6
   useFacingRotation: 0
   walkAnimator: {fileID: 8495944769156157280}
   groundCheck: {fileID: 5468832485090638928}
@@ -592,6 +596,19 @@ MonoBehaviour:
   - {fileID: 0}
   slotKeys: 1f0000002500000013000000
   logCooldown: 1
+--- !u!114 &905950734729212233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8576524948119994719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a296bb47206fcd8479b4a40949ff3688, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvincibleBlink
+  blinkInterval: 0.09
 --- !u!1 &9191151492144908228
 GameObject:
   m_ObjectHideFlags: 0
