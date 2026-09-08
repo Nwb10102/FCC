@@ -39,6 +39,10 @@ public class DungeonGate : MonoBehaviour, IInteractable {
     [Tooltip("낙사로 복귀한 직후 무적으로 버틸 시간(초). 복귀 지점 근처의 몬스터에게 연달아 맞는 것을 막는다.")]
     public float fallInvincibleTime = 3f;
 
+    [Header("거울 연출")]
+    // 클리어하고 나온 순간 부서지는 전신 거울. 비우면 이 오브젝트와 자식에서 찾는다.
+    public DungeonGateMirror mirror;
+
     #endregion
     #region 런타임 변수
 
@@ -99,6 +103,14 @@ public class DungeonGate : MonoBehaviour, IInteractable {
 
     void Awake() {
         if (string.IsNullOrEmpty(dungeonId)) dungeonId = name;
+        if (mirror == null) mirror = GetComponentInChildren<DungeonGateMirror>(true);
+    }
+
+    // 이미 클리어한 던전이면 거울이 처음부터 부서진 상태여야 한다. Awake 가 아니라 Start 인 이유는
+    // DungeonManager 가 세이브에서 클리어 목록을 되돌리는 시점보다 뒤여야 하기 때문이다.
+    void Start() {
+        if (mirror == null) return;
+        if (DungeonManager.Instance != null && DungeonManager.Instance.IsCleared(dungeonId)) mirror.SetBrokenImmediate();
     }
 
     void OnDestroy() {
@@ -149,6 +161,12 @@ public class DungeonGate : MonoBehaviour, IInteractable {
         if (restoreHealth && cachedPlayer != null && cachedPlayer.TryGetComponent(out Health h)) {
             int target = Mathf.Max(1, Mathf.RoundToInt(h.MaxHealth * deathHealthRestoreRatio));
             h.SetHealth(target);
+        }
+
+        // 클리어하고 나왔을 때만 거울을 부순다. 클리어 전에 걸어 나온 것은 다시 들어갈 수 있어야 하므로
+        // 입구가 그대로 남아 있어야 한다(CanInteract 도 같은 기준으로 열고 닫힌다).
+        if (mirror != null && DungeonManager.Instance != null && DungeonManager.Instance.IsCleared(dungeonId)) {
+            mirror.PlayBreak();
         }
     }
 

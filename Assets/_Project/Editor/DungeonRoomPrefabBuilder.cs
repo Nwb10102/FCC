@@ -587,6 +587,90 @@ public static class DungeonRoomPrefabBuilder {
     }
 
     #endregion
+    #region 게이트 전신 거울
+
+    const float MirrorW = 1.6f, MirrorH = 3f; // 사람 키만 한 전신 거울.
+
+    // 던전 입구 전신 거울의 그레이박스 프리팹을 만든다. 멀쩡한 거울 / 부서진 거울 두 벌을 한 오브젝트에
+    // 넣어 두고 DungeonGateMirror 가 켜고 끈다. 아트가 나오면 Intact·Broken 안의 Quad 만 갈아 끼우면 된다.
+    //
+    // 파티클은 일부러 만들지 않는다. DungeonGateMirror 가 비어 있으면 HitVfx 의 파열을 대신 쓰므로
+    // 지금도 "팡" 은 터지고, 전용 이펙트가 필요해지면 그때 프리팹을 만들어 인스펙터에 꽂으면 된다.
+    [MenuItem("Tools/FCC/Dungeon/Build Gate Mirror Prefab")]
+    public static void BuildGateMirror() {
+        if (PrefabStageUtility.GetCurrentPrefabStage() != null) {
+            Debug.LogError("[Dungeon] 프리팹 편집 모드를 닫고 다시 실행하세요.");
+            return;
+        }
+
+        EnsureFolder(PrefabDir);
+        Material frameMat = EnsureMaterial("GateMirrorFrame", new Color(0.18f, 0.16f, 0.22f));
+        Material glassMat = EnsureMaterial("GateMirrorGlass", new Color(0.72f, 0.85f, 0.95f));
+
+        GameObject root = new("GateMirror");
+
+        // 멀쩡한 거울 — 어두운 테두리 위에 밝은 거울면. z 가 작을수록 카메라에 가깝다.
+        GameObject intact = Child(root, "Intact", Vector3.zero);
+        MirrorQuad(intact, "Frame", new Vector3(0f, 0f, 0.01f), new Vector2(MirrorW, MirrorH), 0f, frameMat);
+        MirrorQuad(intact, "Glass", Vector3.zero, new Vector2(MirrorW - 0.35f, MirrorH - 0.35f), 0f, glassMat);
+
+        // 부서진 거울 — 같은 테두리에 파편만 몇 조각 남는다.
+        GameObject broken = Child(root, "Broken", Vector3.zero);
+        MirrorQuad(broken, "Frame", new Vector3(0f, 0f, 0.01f), new Vector2(MirrorW, MirrorH), 0f, frameMat);
+        MirrorQuad(broken, "Shard_1", new Vector3(-0.25f, 0.75f, 0f), new Vector2(0.5f, 1.1f), 14f, glassMat);
+        MirrorQuad(broken, "Shard_2", new Vector3(0.3f, -0.1f, 0f), new Vector2(0.42f, 0.8f), -21f, glassMat);
+        MirrorQuad(broken, "Shard_3", new Vector3(-0.15f, -0.95f, 0f), new Vector2(0.34f, 0.6f), 27f, glassMat);
+        broken.SetActive(false); // DungeonGateMirror 가 Awake 에서도 끄지만, 씬 뷰에서 겹쳐 보이지 않도록 저장 상태부터 꺼 둔다.
+
+        DungeonGateMirror mirror = root.AddComponent<DungeonGateMirror>();
+        mirror.intactVisual = intact;
+        mirror.brokenVisual = broken;
+
+        PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/GateMirror.prefab");
+        Object.DestroyImmediate(root);
+
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Dungeon] GateMirror 프리팹을 만들었습니다. DungeonGate 의 자식으로 놓고 게이트의 mirror 에 연결하세요.");
+    }
+
+    static GameObject Child(GameObject parent, string name, Vector3 local) {
+        GameObject obj = new(name);
+        obj.transform.SetParent(parent.transform, false);
+        obj.transform.localPosition = local;
+        return obj;
+    }
+
+    static void MirrorQuad(GameObject parent, string name, Vector3 local, Vector2 size, float tilt, Material material) {
+        GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        obj.name = name;
+        obj.transform.SetParent(parent.transform, false);
+        obj.transform.localPosition = local;
+        obj.transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
+        obj.transform.localScale = new Vector3(size.x, size.y, 1f);
+
+        Object.DestroyImmediate(obj.GetComponent<Collider>()); // 거울은 보여 주기만 한다. 상호작용 판정은 게이트의 콜라이더가 맡는다.
+        obj.GetComponent<MeshRenderer>().sharedMaterial = material;
+    }
+
+    // 그레이박스 색을 구분하려면 머티리얼이 필요하다. Unlit 을 쓰는 이유는 2D 씬에 3D 조명이 없어
+    // Lit 로 두면 거울이 새까맣게 보이기 때문이다.
+    static Material EnsureMaterial(string name, Color color) {
+        const string dir = "Assets/_Project/Assets/Materials";
+        EnsureFolder(dir);
+
+        string path = $"{dir}/{name}.mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null) {
+            mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.SetColor("_BaseColor", color);
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
+    #endregion
     #region 씬 던전 리그
 
     [MenuItem("Tools/FCC/Dungeon/Place Dungeon Rig In Scene")]
@@ -620,24 +704,57 @@ public static class DungeonRoomPrefabBuilder {
         Debug.Log("[Dungeon] DungeonGenerator 풀을 Prefabs/Dungeon 의 방 프리팹으로 채웠습니다. DungeonOrigin·outsideBounds·게이트 위치를 확인한 뒤 씬을 저장하세요.");
     }
 
+    // 방 프리팹 폴더를 통째로 훑어, 프리팹이 스스로 선언한 DungeonRoom.role 로 분류해 담는다.
+    //
+    // 예전에는 프리팹 이름을 여기에 나열했다. 그러면 새 방을 만든 뒤 이 메뉴를 다시 누를 때마다 목록에
+    // 없는 방이 조용히 빠지고, 인스펙터에 손으로 넣어 둔 것까지 통째로 덮어써 사라졌다. 실제로 오비 방
+    // 4종을 추가했을 때 이 목록이 그대로여서 다시 실행하면 전부 날아가는 상태였다.
+    // 이름이 아니라 역할로 분류하면 방을 새로 만들어도 이 파일을 고칠 일이 없다.
     static void AssignPools(DungeonGenerator g) {
-        g.entryRoomPrefabs = Load("Room_Entry");
-        g.exitRoomPrefabs = Load("Room_Exit");
-        g.hazardRoomPrefabs = Load("Room_Hazard_A", "Room_Hazard_B", "Room_Hazard_C");
-        g.verticalRoomPrefabs = Load("Room_Vertical_A", "Room_Vertical_B");
-        g.combatRoomPrefabs = Load("Room_Combat_A", "Room_Combat_B", "Room_Combat_C", "Room_Combat_D", "Room_Combat_E");
-        g.secretRoomPrefabs = Load("Room_Secret_A", "Room_Secret_B");
-        EditorUtility.SetDirty(g);
-    }
-
-    static List<GameObject> Load(params string[] names) {
-        var list = new List<GameObject>();
-        foreach (string n in names) {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/{n}.prefab");
-            if (go != null) list.Add(go);
-            else Debug.LogWarning($"[Dungeon] '{n}.prefab' 을 찾지 못했습니다. 먼저 Build All Rooms 를 실행하세요.");
+        var buckets = new Dictionary<DungeonRoom.RoomRole, List<GameObject>>();
+        foreach (DungeonRoom.RoomRole role in System.Enum.GetValues(typeof(DungeonRoom.RoomRole))) {
+            buckets[role] = new List<GameObject>();
         }
-        return list;
+
+        var paths = new List<string>();
+        foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { PrefabDir })) {
+            paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+        }
+        paths.Sort(); // FindAssets 의 순서는 보장되지 않는다. 인스펙터에서 목록을 눈으로 훑기 쉽도록 정렬해 둔다.
+
+        foreach (string path in paths) {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) continue;
+
+            // 손으로 방을 만들 때 복제해 쓰는 원본이라 실제 던전에는 나오면 안 된다.
+            if (prefab.name.EndsWith("_Template")) continue;
+
+            // 게이트 거울처럼 방이 아닌 프리팹이 같은 폴더에 있을 수 있다.
+            if (!prefab.TryGetComponent(out DungeonRoom room)) continue;
+
+            // 소켓이 없으면 생성기가 앞뒤로 이어 붙이지 못한다. 곁가지는 막다른 방이라 exitAnchor 가 없어도 된다.
+            bool needsExit = room.role != DungeonRoom.RoomRole.SecretBranch;
+            if (room.entryAnchor == null || (needsExit && room.exitAnchor == null)) {
+                Debug.LogWarning($"[Dungeon] '{prefab.name}' 은 소켓(entryAnchor/exitAnchor)이 비어 있어 풀에서 제외했습니다.", prefab);
+                continue;
+            }
+
+            buckets[room.role].Add(prefab);
+        }
+
+        g.entryRoomPrefabs = buckets[DungeonRoom.RoomRole.Entry];
+        g.exitRoomPrefabs = buckets[DungeonRoom.RoomRole.Exit];
+        g.hazardRoomPrefabs = buckets[DungeonRoom.RoomRole.PlatformingHazard];
+        g.verticalRoomPrefabs = buckets[DungeonRoom.RoomRole.VerticalClimb];
+        g.combatRoomPrefabs = buckets[DungeonRoom.RoomRole.CombatArena];
+        g.secretRoomPrefabs = buckets[DungeonRoom.RoomRole.SecretBranch];
+
+        // 비어 있는 역할이 있으면 생성 도중 그 단계가 통째로 건너뛰어진다. 그때 가서 원인을 찾기 어려우니 여기서 알린다.
+        foreach (var pair in buckets) {
+            if (pair.Value.Count == 0) Debug.LogWarning($"[Dungeon] '{pair.Key}' 역할의 방 프리팹이 하나도 없습니다. 먼저 Build All Rooms 를 실행하세요.");
+        }
+
+        EditorUtility.SetDirty(g);
     }
 
     #endregion
