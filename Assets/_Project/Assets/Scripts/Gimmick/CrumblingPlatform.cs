@@ -13,7 +13,9 @@ public class CrumblingPlatform : MonoBehaviour {
     #region 컴포넌트 변수
 
     Collider2D col;
-    SpriteRenderer sr; // 있으면 함께 숨긴다. 그레이박스 단계에서는 비어 있을 수 있다.
+    // SpriteRenderer 가 아니라 Renderer 로 받는다. 그레이박스 지형은 Quad(MeshRenderer)라 SpriteRenderer 로
+    // 찾으면 못 잡고, 그러면 콜라이더만 사라져 "보이는데 밟히지 않는" 발판이 되어 버린다.
+    Renderer visual;
     bool triggered;
 
     #endregion
@@ -21,7 +23,7 @@ public class CrumblingPlatform : MonoBehaviour {
 
     void Awake() {
         col = GetComponent<Collider2D>();
-        sr = GetComponentInChildren<SpriteRenderer>();
+        visual = GetComponentInChildren<Renderer>();
     }
 
     void OnCollisionEnter2D(Collision2D collision) {
@@ -37,11 +39,11 @@ public class CrumblingPlatform : MonoBehaviour {
 
         yield return new WaitForSeconds(fallDelay);
         col.enabled = false;
-        if (sr != null) sr.enabled = false;
+        if (visual != null) visual.enabled = false;
 
         yield return new WaitForSeconds(respawnDelay);
         col.enabled = true;
-        if (sr != null) sr.enabled = true;
+        if (visual != null) visual.enabled = true;
         triggered = false;
     }
 
