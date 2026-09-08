@@ -45,6 +45,10 @@ public class Player_move : MonoBehaviour
 
     private bool isGrounded;
 
+    // OverlapBox 결과를 매 FixedUpdate 마다 새 배열로 받으면 GC가 계속 쌓이므로 버퍼를 재사용한다.
+    readonly Collider2D[] groundHits = new Collider2D[8];
+    ContactFilter2D groundFilter;
+
     [Header("Coyote Time")]
     public float coyoteDuration = 0.15f; // 코요테 점프 허용 시간 (초)
     public float coyoteCounter; // 남은 코요테 시간을 체크할 타이머
@@ -95,7 +99,7 @@ public class Player_move : MonoBehaviour
         // Rigidbody2D의 Interpolation 때문에 Update()에서 읽는 transform 위치는 화면 표시용으로
         // 보간된 값이라 실제 물리 위치와 어긋날 수 있고, 이 오차가 점프 이륙/착지 순간의
         // isGrounded 판정을 한두 프레임 틀리게 만들어 점프가 살짝 걸리는 느낌으로 체감됐다.
-        isGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
+        isGrounded = CheckGrounded();
 
         coyoteJumpTime(); // 코요테
         JumpBufferTime(); // 점프 버퍼 (착지 전 미리 누른 점프 입력 처리)
@@ -112,6 +116,35 @@ public class Player_move : MonoBehaviour
 
     #endregion
 
+    #region 접지 판정
+
+    // 한 방향 발판(OneWayPlatform)은 물리적으로 통과되는 중에도 OverlapBox 에는 그대로 걸린다.
+    // 그대로 두면 발판을 뚫고 올라가는 동안 isGrounded 가 켜져 코요테 시간과 2단 점프가 공짜로
+    // 충전되어 공중에서 무한히 점프할 수 있게 되므로, 통과형 지형은 "상승 중이 아니고 발판 윗면이
+    // 발밑까지 내려와 있을 때" 즉 실제로 올라선 상태일 때만 밟고 있는 것으로 인정한다.
+    bool CheckGrounded() {
+        groundFilter.useTriggers = false;
+        groundFilter.SetLayerMask(groundLayer);
+
+        int count = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundFilter, groundHits);
+        float footTop = groundCheck.position.y + groundCheckSize.y * 0.5f;
+
+        for (int i = 0; i < count; i++) {
+            Collider2D col = groundHits[i];
+            if (col == null) continue;
+
+            if (!col.usedByEffector) return true; // 통과되지 않는 일반 지형은 겹친 것만으로 접지로 본다.
+
+            if (rigid.linearVelocityY > 0.01f) continue; // 아래에서 뚫고 올라가는 중.
+            if (col.bounds.max.y > footTop) continue;    // 발판 윗면이 발보다 위 = 아직 발판 속을 지나는 중.
+
+            return true;
+        }
+
+        return false;
+    }
+
+    #endregion
     #region 플레이어 움직임 관련 함수
     // 즉각적인 움직임 함수.
     void ImmediateMove() {

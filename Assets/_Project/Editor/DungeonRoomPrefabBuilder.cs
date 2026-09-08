@@ -15,7 +15,7 @@ using UnityEngine;
 // 있도록 단차 2.5 · 간격 3~4유닛 안쪽으로만 잡는다. 오브젝트 수도 방당 한 자릿수로 억제한다.
 //
 // 사용법:
-//   Tools ▸ FCC ▸ Dungeon ▸ Build All Rooms        → 아래 14종 프리팹을 기존 경로에 덮어쓴다(GUID 유지).
+//   Tools ▸ FCC ▸ Dungeon ▸ Build All Rooms        → 아래 18종 프리팹을 기존 경로에 덮어쓴다(GUID 유지).
 //   Tools ▸ FCC ▸ Dungeon ▸ Place Dungeon Rig In Scene → 게이트·생성기·매니저를 씬에 놓고 풀을 채운다.
 public static class DungeonRoomPrefabBuilder {
     #region 상수
@@ -26,6 +26,7 @@ public static class DungeonRoomPrefabBuilder {
     const float Step = 2.5f;      // 한 번에 오르내리는 세로 단차.
     const float PlatThick = 0.6f; // 발판 두께.
     const float WallThick = 1.2f; // 벽·바닥 두께.
+    const float SpikeThick = 0.8f; // 가시밭이 바닥 위로 솟은 높이.
 
     static int groundLayer;
 
@@ -53,6 +54,10 @@ public static class DungeonRoomPrefabBuilder {
         BuildHazardA();
         BuildHazardB();
         BuildHazardC();
+        BuildObby();
+        BuildObbyB();
+        BuildObbyC();
+        BuildObbyD();
 
         BuildVerticalA();
         BuildVerticalB();
@@ -68,7 +73,7 @@ public static class DungeonRoomPrefabBuilder {
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[Dungeon] 방 프리팹 14종을 다시 만들었습니다. DungeonGenerator 풀에 이미 연결돼 있으면 그대로 쓰입니다.");
+        Debug.Log("[Dungeon] 방 프리팹 18종을 다시 만들었습니다. DungeonGenerator 풀에 이미 연결돼 있으면 그대로 쓰입니다.");
     }
 
     #endregion
@@ -101,7 +106,7 @@ public static class DungeonRoomPrefabBuilder {
 
         GameObject root = NewRoom("Room_Exit", w, h, out BoxCollider2D trigger);
         Frame(root, w, h, g, leftWall: false, rightWall: true, ceiling: true);
-        Solid(root, "Step", new Vector3(2f, g + Step * 0.5f, 0f), new Vector2(6f, PlatThick));
+        Platform(root, "Step", new Vector3(2f, g + Step * 0.5f, 0f), new Vector2(6f, PlatThick));
 
         Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 1.5f, a, 0f));
         Transform exit = Anchor(root, "ExitAnchor", new Vector3(w / 2f - 1.5f, a, 0f));
@@ -126,11 +131,11 @@ public static class DungeonRoomPrefabBuilder {
 
         GameObject root = NewRoom("Room_Hazard_A", w, h, out BoxCollider2D trigger);
         Ceiling(root, w, h);
-        Solid(root, "Floor_L", new Vector3(-w / 2f + (w / 2f - 6f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 6f, WallThick));
-        Solid(root, "Floor_R", new Vector3(w / 2f - (w / 2f - 6f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 6f, WallThick));
+        Platform(root, "Floor_L", new Vector3(-w / 2f + (w / 2f - 6f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 6f, WallThick));
+        Platform(root, "Floor_R", new Vector3(w / 2f - (w / 2f - 6f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 6f, WallThick));
 
-        Solid(root, "Plat_1", new Vector3(-2.5f, g + Step, 0f), new Vector2(3f, PlatThick));
-        Solid(root, "Plat_2", new Vector3(2.5f, g + Step, 0f), new Vector2(3f, PlatThick));
+        Platform(root, "Plat_1", new Vector3(-2.5f, g + Step, 0f), new Vector2(3f, PlatThick));
+        Platform(root, "Plat_2", new Vector3(2.5f, g + Step, 0f), new Vector2(3f, PlatThick));
 
         TriggerVolume(root, "FallZone", new Vector3(0f, g - 5f, 0f), new Vector2(13f, 3f)).AddComponent<DungeonFallZone>();
 
@@ -151,12 +156,12 @@ public static class DungeonRoomPrefabBuilder {
 
         GameObject root = NewRoom("Room_Hazard_B", w, h, out BoxCollider2D trigger);
         Ceiling(root, w, h);
-        Solid(root, "Floor_L", new Vector3(-w / 2f + (w / 2f - 4f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 4f, WallThick));
-        Solid(root, "Floor_R", new Vector3(w / 2f - (w / 2f - 10f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 10f, WallThick));
+        Platform(root, "Floor_L", new Vector3(-w / 2f + (w / 2f - 4f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 4f, WallThick));
+        Platform(root, "Floor_R", new Vector3(w / 2f - (w / 2f - 10f) / 2f, g - WallThick / 2f, 0f), new Vector2(w / 2f - 10f, WallThick));
 
-        Solid(root, "Plat_1", new Vector3(-1f, g + Step, 0f), new Vector2(3f, PlatThick));
-        Solid(root, "Plat_2", new Vector3(3f, g + Step * 2f, 0f), new Vector2(3f, PlatThick));
-        Solid(root, "Plat_3", new Vector3(7f, g + Step, 0f), new Vector2(3f, PlatThick));
+        Platform(root, "Plat_1", new Vector3(-1f, g + Step, 0f), new Vector2(3f, PlatThick));
+        Platform(root, "Plat_2", new Vector3(3f, g + Step * 2f, 0f), new Vector2(3f, PlatThick));
+        Platform(root, "Plat_3", new Vector3(7f, g + Step, 0f), new Vector2(3f, PlatThick));
 
         TriggerVolume(root, "FallZone", new Vector3(3f, g - 5f, 0f), new Vector2(15f, 3f)).AddComponent<DungeonFallZone>();
 
@@ -178,13 +183,13 @@ public static class DungeonRoomPrefabBuilder {
         GameObject root = NewRoom("Room_Hazard_C", w, h, out BoxCollider2D trigger);
         Ceiling(root, w, h);
         float seg = (w - 8f) / 3f;
-        Solid(root, "Floor_L", new Vector3(-w / 2f + seg / 2f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
-        Solid(root, "Floor_M", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
-        Solid(root, "Floor_R", new Vector3(w / 2f - seg / 2f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
+        Platform(root, "Floor_L", new Vector3(-w / 2f + seg / 2f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
+        Platform(root, "Floor_M", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
+        Platform(root, "Floor_R", new Vector3(w / 2f - seg / 2f, g - WallThick / 2f, 0f), new Vector2(seg, WallThick));
 
         float gapX = seg / 2f + 2f;
-        Solid(root, "Plat_L", new Vector3(-gapX, g + 1.5f, 0f), new Vector2(2.5f, PlatThick));
-        Solid(root, "Plat_R", new Vector3(gapX, g + 1.5f, 0f), new Vector2(2.5f, PlatThick));
+        Platform(root, "Plat_L", new Vector3(-gapX, g + 1.5f, 0f), new Vector2(2.5f, PlatThick));
+        Platform(root, "Plat_R", new Vector3(gapX, g + 1.5f, 0f), new Vector2(2.5f, PlatThick));
 
         TriggerVolume(root, "FallZone_L", new Vector3(-gapX, g - 5f, 0f), new Vector2(4.5f, 3f)).AddComponent<DungeonFallZone>();
         TriggerVolume(root, "FallZone_R", new Vector3(gapX, g - 5f, 0f), new Vector2(4.5f, 3f)).AddComponent<DungeonFallZone>();
@@ -196,6 +201,182 @@ public static class DungeonRoomPrefabBuilder {
 
         WireRoom(root, DungeonRoom.RoomRole.PlatformingHazard, entry, exit, branch, respawn, trigger, null, null);
         Save(root, "Room_Hazard_C");
+    }
+
+    // 오비(장애물 코스) 전용 방. 몬스터도 전투 락인도 없이 점프 구간만으로 이루어진 순수 플랫포밍 방이라,
+    // 다른 방보다 두 배 가까이 길고 발판 수도 그만큼 많다. 코스 자체가 방의 내용이라 쪼갤 수가 없다.
+    //
+    // 구간마다 성격이 다른 것을 하나씩 배치해 같은 점프를 반복하지 않게 했다.
+    //   1구간 정적 발판 → 2구간 가로 이동 발판 → 3구간 통과 발판 탑 → 4구간 무너지는 발판.
+    // 기믹을 1구간에 두지 않는 이유는, 간격 감각을 먼저 잡은 뒤에 타이밍을 요구해야 덜 억울하기 때문이다.
+    static void BuildObby() {
+        const float w = 76f, h = 18f;
+        float g = GroundY(h);
+        float a = AnchorY(h);
+
+        GameObject root = NewRoom("Room_Obby_A", w, h, out BoxCollider2D trigger);
+        Ceiling(root, w, h);
+
+        // 앞뒤 방과 이어지는 시작·도착 발판만 바닥 두께로 두어, 걸어 들어오고 나가는 높이를 맞춘다.
+        Ledge(root, "Ledge_Start", -34f, g, 8f, WallThick);
+        Ledge(root, "Ledge_End", 35.75f, g, 4.5f, WallThick);
+
+        // 1구간 — 정적 워밍업. 기믹을 만나기 전에 간격 감각부터 잡게 한다.
+        Ledge(root, "Plat_1", -25f, g, 4f, PlatThick);
+        Ledge(root, "Plat_2", -18.5f, g + 2.4f, 3f, PlatThick);
+
+        // 2구간 — 가로 이동 발판. 왼쪽 끝에 와 있을 때만 Plat_2 에서 건너탈 수 있고(간격 3.25),
+        // 오른쪽 끝까지 실려 가야 Plat_3 에 닿는다. 왼쪽 끝에서 바로 뛰면 간격이 9가 넘어 못 넘어간다.
+        Mover(root, "Mover_1", -12f, g + 2.4f, 3.5f, new Vector2(6f, 0f), 2.2f);
+        Ledge(root, "Plat_3", 1f, g, 4f, PlatThick);
+
+        // 3구간 — 통과 발판 탑. 바닥에서 한 번에 오를 수 있는 높이는 약 6유닛이라, 꼭대기(+7.2)는
+        // 발판을 아래에서 뚫고 올라가야만 닿는다. Deck_0 은 벽에 0.1 물려 두어 사이로 빠지는 틈을 없앴다.
+        Ledge(root, "Deck_0", 9.5f, g, 7f, PlatThick);
+        Ledge(root, "Deck_1", 9f, g + 2.4f, 4.5f, PlatThick);
+        Ledge(root, "Deck_2", 9f, g + 4.8f, 4.5f, PlatThick);
+        Ledge(root, "Deck_3", 9f, g + 7.2f, 4.5f, PlatThick);
+        Solid(root, "ShaftWall", new Vector3(13.5f, g + 3.4f, 0f), new Vector2(WallThick, 6.8f));
+        Ledge(root, "Plat_4", 16.5f, g + 7.2f, 4f, PlatThick);
+
+        // 4구간 — 무너지는 발판을 밟고 내려오는 마무리. 멈춰 서면 발밑이 사라지므로 리듬이 끊기지 않는다.
+        Crumble(root, "Crumble_1", 23f, g + 4.8f, 3f);
+        Crumble(root, "Crumble_2", 29f, g + 2.4f, 3f);
+
+        // 코스 전체가 구덩이 위라, 어디서 헛디디든 방 리스폰으로 되돌린다.
+        TriggerVolume(root, "FallZone", new Vector3(0f, g - 5f, 0f), new Vector2(w - 2f, 3f))
+            .AddComponent<DungeonFallZone>();
+
+        Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 1.5f, a, 0f));
+        Transform exit = Anchor(root, "ExitAnchor", new Vector3(w / 2f - 1.5f, a, 0f));
+        Transform branch = Anchor(root, "BranchAnchor", new Vector3(9f, g + 7.2f + 1.1f, 0f)); // 탑 꼭대기에서 곁가지가 갈라진다.
+        Transform respawn = Anchor(root, "RespawnPoint", new Vector3(-w / 2f + 4f, a, 0f));
+
+        WireRoom(root, DungeonRoom.RoomRole.PlatformingHazard, entry, exit, branch, respawn, trigger, null, null);
+        Save(root, "Room_Obby_A");
+    }
+
+    // B — "붕괴 질주". 발판이 전부 무너지는 종류라, 멈춰 서는 것 자체가 실패가 된다.
+    // A 가 "정확히 밟기"를 묻는다면 이 방은 "멈추지 않기"를 묻는다. 대신 간격을 2\~3으로 좁게 잡아
+    // 점프 자체는 쉽게 두었다. 계속 달려야 하는 압박과 어려운 점프를 동시에 주면 금세 지친다.
+    // 붕괴 구간 사이에는 무너지지 않는 쉼터를 둬서 숨 돌리고 다음 구간을 읽을 시간을 준다.
+    static void BuildObbyB() {
+        const float w = 76f, h = 18f;
+        float g = GroundY(h);
+        float a = AnchorY(h);
+
+        GameObject root = NewRoom("Room_Obby_B", w, h, out BoxCollider2D trigger);
+        Ceiling(root, w, h);
+
+        Ledge(root, "Ledge_Start", -34f, g, 8f, WallThick);
+        Ledge(root, "Ledge_End", 34.75f, g, 6.5f, WallThick);
+
+        // 1구간 — 평지 붕괴 다리. 네 장이 연달아 무너지므로 한 번 발을 디디면 끝까지 가야 한다.
+        // 이 구간만 무너지는 시간을 1초로 늘렸다. 네 번 연속은 0.8초로는 첫 시도에 거의 못 넘는다.
+        Crumble(root, "Crumble_1", -26f, g, 3f, 1f);
+        Crumble(root, "Crumble_2", -20.5f, g, 3f, 1f);
+        Crumble(root, "Crumble_3", -15f, g, 3f, 1f);
+        Crumble(root, "Crumble_4", -9.5f, g, 3f, 1f);
+
+        Ledge(root, "Rest_1", -4f, g, 4f, PlatThick); // 무너지지 않는 쉼터.
+
+        // 2구간 — 오르는 붕괴 계단.
+        Crumble(root, "Crumble_5", 2.5f, g + 2.4f, 3f, 0.9f);
+        Crumble(root, "Crumble_6", 8.5f, g + 4.8f, 3f, 0.9f);
+
+        Ledge(root, "Rest_2", 15f, g + 4.8f, 5f, PlatThick);
+
+        // 3구간 — 내려오는 붕괴 계단.
+        Crumble(root, "Crumble_7", 22f, g + 2.4f, 3f, 0.9f);
+        Crumble(root, "Crumble_8", 28f, g, 3f, 0.9f);
+
+        TriggerVolume(root, "FallZone", new Vector3(0f, g - 5f, 0f), new Vector2(w - 2f, 3f))
+            .AddComponent<DungeonFallZone>();
+
+        Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 1.5f, a, 0f));
+        Transform exit = Anchor(root, "ExitAnchor", new Vector3(w / 2f - 1.5f, a, 0f));
+        Transform branch = Anchor(root, "BranchAnchor", new Vector3(15f, g + 4.8f + 1.1f, 0f)); // 쉼터 위에서 갈라진다.
+        Transform respawn = Anchor(root, "RespawnPoint", new Vector3(-w / 2f + 4f, a, 0f));
+
+        WireRoom(root, DungeonRoom.RoomRole.PlatformingHazard, entry, exit, branch, respawn, trigger, null, null);
+        Save(root, "Room_Obby_B");
+    }
+
+    // C — "이동 발판 릴레이". 정지 발판과 이동 발판을 번갈아 놓아, 뛰는 실력보다 기다리는 타이밍을 묻는다.
+    // 각 이동 발판은 가까운 끝에 와 있을 때만 건너탈 수 있고(간격 2.75), 먼 끝에 있을 때 뛰면 간격이
+    // 8을 넘어 절대 닿지 않는다. 그래서 "기다리다 탄다"가 강제된다.
+    // 발판마다 속도와 출발 지연을 어긋나게 둬서, 네 번의 대기가 같은 리듬으로 반복되지 않게 했다.
+    static void BuildObbyC() {
+        const float w = 76f, h = 18f;
+        float g = GroundY(h);
+        float a = AnchorY(h);
+
+        GameObject root = NewRoom("Room_Obby_C", w, h, out BoxCollider2D trigger);
+        Ceiling(root, w, h);
+
+        Ledge(root, "Ledge_Start", -34.5f, g, 7f, WallThick);
+        Ledge(root, "Ledge_End", 36f, g, 4f, WallThick);
+
+        Mover(root, "Mover_1", -26f, g, 3.5f, new Vector2(5f, 0f), 2f);
+        Ledge(root, "Perch_1", -15f, g + 2.4f, 3f, PlatThick);
+
+        Mover(root, "Mover_2", -9f, g + 2.4f, 3.5f, new Vector2(6f, 0f), 2.6f, startDelay: 1f);
+        Ledge(root, "Perch_2", 3f, g + 2.4f, 3f, PlatThick);
+
+        Mover(root, "Mover_3", 9f, g + 4.8f, 3.5f, new Vector2(6f, 0f), 2.2f, startDelay: 0.5f);
+        Ledge(root, "Perch_3", 21f, g + 4.8f, 3f, PlatThick);
+
+        Mover(root, "Mover_4", 27f, g + 2.4f, 3.5f, new Vector2(3f, 0f), 1.8f);
+
+        TriggerVolume(root, "FallZone", new Vector3(0f, g - 5f, 0f), new Vector2(w - 2f, 3f))
+            .AddComponent<DungeonFallZone>();
+
+        Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 1.5f, a, 0f));
+        Transform exit = Anchor(root, "ExitAnchor", new Vector3(w / 2f - 1.5f, a, 0f));
+        Transform branch = Anchor(root, "BranchAnchor", new Vector3(21f, g + 4.8f + 1.1f, 0f));
+        Transform respawn = Anchor(root, "RespawnPoint", new Vector3(-w / 2f + 3.5f, a, 0f));
+
+        WireRoom(root, DungeonRoom.RoomRole.PlatformingHazard, entry, exit, branch, respawn, trigger, null, null);
+        Save(root, "Room_Obby_C");
+    }
+
+    // D — "가시밭 건너기". 다른 오비 방과 달리 바닥이 끝까지 이어져 있어, 실패해도 떨어져 죽지 않는다.
+    // 대신 밑이 가시밭이라 헛디디면 자아 게이지가 깎인 채로 계속 가게 된다. "다시 하기"가 아니라
+    // "손해를 안고 전진하기"라는 다른 종류의 실패를 만들어, 낙사 일변도인 다른 오비 방과 리듬을 다르게 했다.
+    // 급하면 그냥 가시밭을 걸어서 돌파할 수도 있다. 체력을 얼마나 내줄지 스스로 정하는 방이다.
+    static void BuildObbyD() {
+        const float w = 76f, h = 18f;
+        float g = GroundY(h);
+        float a = AnchorY(h);
+
+        GameObject root = NewRoom("Room_Obby_D", w, h, out BoxCollider2D trigger);
+        Ceiling(root, w, h);
+        Ledge(root, "Floor", 0f, g, w, WallThick); // 구덩이가 없는 유일한 오비 방.
+
+        // 1구간 — 발판 두 장으로 건너는 가시밭.
+        Spikes(root, "Spikes_1", -20f, g + SpikeThick, 10f, 10);
+        Ledge(root, "Plat_1", -22.5f, g + 2.4f, 2.5f, PlatThick);
+        Ledge(root, "Plat_2", -18.5f, g + 2.4f, 2.5f, PlatThick);
+
+        // 2구간 — 가장 넓은 가시밭. 이동 발판을 기다렸다 타고 건넌다.
+        Spikes(root, "Spikes_2", 0f, g + SpikeThick, 12f, 10);
+        Mover(root, "Mover_1", -3f, g + 2.4f, 3f, new Vector2(6f, 0f), 2f);
+
+        // 3구간 — 다시 발판 두 장.
+        Spikes(root, "Spikes_3", 20f, g + SpikeThick, 10f, 10);
+        Ledge(root, "Plat_3", 17.5f, g + 2.4f, 2.5f, PlatThick);
+        Ledge(root, "Plat_4", 21.5f, g + 2.4f, 2.5f, PlatThick);
+
+        // 곁가지용 선반. 바닥에서 한 번에 오를 수 있는 높이라 가시를 밟지 않고도 닿는다.
+        Ledge(root, "Alcove", 30f, g + 4.8f, 3f, PlatThick);
+
+        Transform entry = Anchor(root, "EntryAnchor", new Vector3(-w / 2f + 1.5f, a, 0f));
+        Transform exit = Anchor(root, "ExitAnchor", new Vector3(w / 2f - 1.5f, a, 0f));
+        Transform branch = Anchor(root, "BranchAnchor", new Vector3(30f, g + 4.8f + 1.1f, 0f));
+        Transform respawn = Anchor(root, "RespawnPoint", new Vector3(-w / 2f + 4f, a, 0f));
+
+        WireRoom(root, DungeonRoom.RoomRole.PlatformingHazard, entry, exit, branch, respawn, trigger, null, null);
+        Save(root, "Room_Obby_D");
     }
 
     #endregion
@@ -239,20 +420,20 @@ public static class DungeonRoomPrefabBuilder {
         float a = AnchorY(h);
 
         GameObject root = NewRoom(prefabName, w, h, out BoxCollider2D trigger);
-        Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+        Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
 
         for (int i = 0; i < path.Length; i++) {
             VPlat p = path[i];
-            Solid(root, $"Plat_{i + 1}", new Vector3(p.X, g + p.YUp, 0f), new Vector2(p.W, PlatThick));
+            Platform(root, $"Plat_{i + 1}", new Vector3(p.X, g + p.YUp, 0f), new Vector2(p.W, PlatThick));
         }
 
         // 오르는 길에서 살짝 벗어난 막다른 니치. 곁가지(비밀방)가 여기 붙고, 없어도 잠깐 쉬어 가는 자리.
-        Solid(root, "Alcove", new Vector3(alcove.X, g + alcove.YUp, 0f), new Vector2(alcove.W, PlatThick));
+        Platform(root, "Alcove", new Vector3(alcove.X, g + alcove.YUp, 0f), new Vector2(alcove.W, PlatThick));
 
         float topY = g + path[path.Length - 1].YUp;
 
         // 맨 위 발판에서 오른쪽 퇴장 구멍까지 이어 주는 선반. 없으면 꼭대기에서 다음 방까지 허공이 뜬다.
-        Solid(root, "ExitLedge", new Vector3(w / 4f + 1f, topY, 0f), new Vector2(w / 2f, PlatThick));
+        Platform(root, "ExitLedge", new Vector3(w / 4f + 1f, topY, 0f), new Vector2(w / 2f, PlatThick));
 
         // 옆벽은 헛디딤 방지용이지만 통째로 세우면 앞뒤 방과 이어지지 않는다.
         // 왼쪽은 아래(입장 통로)를, 오른쪽은 위(퇴장 통로)를 비운 반쪽짜리로 세운다.
@@ -293,8 +474,8 @@ public static class DungeonRoomPrefabBuilder {
 
         switch (variant) {
             case CombatVariant.OneHighPlatform:
-                Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
-                Solid(root, "Plat_C", new Vector3(0f, g + Step, 0f), new Vector2(9f, PlatThick));
+                Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+                Platform(root, "Plat_C", new Vector3(0f, g + Step, 0f), new Vector2(9f, PlatThick));
                 spawns.Add(new Vector3(-15f, g + 1f, 0f));
                 spawns.Add(new Vector3(-8f, g + 1f, 0f));
                 spawns.Add(new Vector3(0f, g + Step + 1f, 0f));
@@ -303,9 +484,9 @@ public static class DungeonRoomPrefabBuilder {
                 break;
 
             case CombatVariant.TwoPlatforms:
-                Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
-                Solid(root, "Plat_L", new Vector3(-10f, g + Step, 0f), new Vector2(8f, PlatThick));
-                Solid(root, "Plat_R", new Vector3(10f, g + Step, 0f), new Vector2(8f, PlatThick));
+                Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+                Platform(root, "Plat_L", new Vector3(-10f, g + Step, 0f), new Vector2(8f, PlatThick));
+                Platform(root, "Plat_R", new Vector3(10f, g + Step, 0f), new Vector2(8f, PlatThick));
                 spawns.Add(new Vector3(-16f, g + 1f, 0f));
                 spawns.Add(new Vector3(-10f, g + Step + 1f, 0f));
                 spawns.Add(new Vector3(-4f, g + 1f, 0f));
@@ -315,7 +496,7 @@ public static class DungeonRoomPrefabBuilder {
                 break;
 
             case CombatVariant.WideFlat:
-                Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+                Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
                 for (int i = 0; i < 6; i++) {
                     float x = -20f + i * 8f;
                     spawns.Add(new Vector3(x, g + 1f, 0f));
@@ -324,9 +505,9 @@ public static class DungeonRoomPrefabBuilder {
 
             case CombatVariant.TwoTiers:
                 // 양 끝은 바닥 높이로 두어 앞뒤 방과 이어지게 하고, 가운데만 한 단 올린 대(臺)를 둔다.
-                Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
-                Solid(root, "Dais", new Vector3(4f, g + Step - PlatThick / 2f, 0f), new Vector2(18f, PlatThick));
-                Solid(root, "Dais_Step", new Vector3(-6.5f, g + Step * 0.5f, 0f), new Vector2(3f, PlatThick));
+                Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+                Platform(root, "Dais", new Vector3(4f, g + Step - PlatThick / 2f, 0f), new Vector2(18f, PlatThick));
+                Platform(root, "Dais_Step", new Vector3(-6.5f, g + Step * 0.5f, 0f), new Vector2(3f, PlatThick));
                 spawns.Add(new Vector3(-16f, g + 1f, 0f));
                 spawns.Add(new Vector3(-9f, g + 1f, 0f));
                 spawns.Add(new Vector3(2f, g + Step + 1f, 0f));
@@ -335,10 +516,10 @@ public static class DungeonRoomPrefabBuilder {
                 break;
 
             case CombatVariant.CenterPeak:
-                Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
-                Solid(root, "Step_L", new Vector3(-6f, g + Step * 0.8f, 0f), new Vector2(3f, PlatThick));
-                Solid(root, "Step_R", new Vector3(6f, g + Step * 0.8f, 0f), new Vector2(3f, PlatThick));
-                Solid(root, "Peak", new Vector3(0f, g + Step * 1.8f, 0f), new Vector2(6f, PlatThick));
+                Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+                Platform(root, "Step_L", new Vector3(-6f, g + Step * 0.8f, 0f), new Vector2(3f, PlatThick));
+                Platform(root, "Step_R", new Vector3(6f, g + Step * 0.8f, 0f), new Vector2(3f, PlatThick));
+                Platform(root, "Peak", new Vector3(0f, g + Step * 1.8f, 0f), new Vector2(6f, PlatThick));
                 spawns.Add(new Vector3(-16f, g + 1f, 0f));
                 spawns.Add(new Vector3(-6f, g + Step * 0.8f + 1f, 0f));
                 spawns.Add(new Vector3(0f, g + Step * 1.8f + 1f, 0f));
@@ -393,7 +574,7 @@ public static class DungeonRoomPrefabBuilder {
 
         GameObject root = NewRoom("Room_Secret_B", w, h, out BoxCollider2D trigger);
         Frame(root, w, h, g, leftWall: true, rightWall: true, ceiling: true);
-        Solid(root, "Plat", new Vector3(3f, g + Step, 0f), new Vector2(4f, PlatThick));
+        Platform(root, "Plat", new Vector3(3f, g + Step, 0f), new Vector2(4f, PlatThick));
 
         GameObject pickup = TriggerVolume(root, "BonusShard", new Vector3(3f, g + Step + 1.4f, 0f), new Vector2(1.6f, 1.6f));
         pickup.AddComponent<DungeonBonusPickup>();
@@ -478,7 +659,7 @@ public static class DungeonRoomPrefabBuilder {
 
     // 바닥 전폭 + 선택적 벽·천장.
     static void Frame(GameObject root, float w, float h, float g, bool leftWall, bool rightWall, bool ceiling) {
-        Solid(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
+        Platform(root, "Floor", new Vector3(0f, g - WallThick / 2f, 0f), new Vector2(w, WallThick));
         if (ceiling) Ceiling(root, w, h);
         if (leftWall) Solid(root, "Wall_L", new Vector3(-w / 2f + WallThick / 2f, 0f, 0f), new Vector2(WallThick, h));
         if (rightWall) Solid(root, "Wall_R", new Vector3(w / 2f - WallThick / 2f, 0f, 0f), new Vector2(WallThick, h));
@@ -488,7 +669,71 @@ public static class DungeonRoomPrefabBuilder {
         Solid(root, "Ceiling", new Vector3(0f, h / 2f - WallThick / 2f, 0f), new Vector2(w, WallThick));
     }
 
+    // 사방이 막히는 지형. 벽·천장처럼 어느 방향에서 와도 통과되면 안 되는 곳에만 쓴다.
     static void Solid(GameObject parent, string name, Vector3 center, Vector2 size) {
+        Block(parent, name, center, size);
+    }
+
+    // 밟고 올라서는 가로 지형. 아래에서 위로는 통과되고 위에서는 떠받쳐 준다(OneWayPlatform).
+    // 바닥까지 통과형으로 두는 이유는, 방 아래쪽에서 점프로 올라올 때 지형에 걸려 막히는 감각을
+    // 없애자는 요구였기 때문이다. 대신 밟고 있는 동안 아래로 내려가는 길은 만들지 않는다.
+    static GameObject Platform(GameObject parent, string name, Vector3 center, Vector2 size) {
+        GameObject obj = Block(parent, name, center, size);
+        // PlatformEffector2D 와 usedByEffector 배선은 OneWayPlatform 이 잡아 준다. 다만 에디터에서
+        // 붙이는 시점에는 Awake 가 돌지 않으므로, 프리팹에 값이 저장되도록 여기서 직접 한 번 적용한다.
+        obj.AddComponent<OneWayPlatform>().Apply();
+        return obj;
+    }
+
+    // 발판을 "밟는 면의 높이(topY)" 기준으로 놓는다. 코스를 짤 때는 단차를 눈으로 세면서 배치하게 되는데,
+    // 중심 좌표로 적으면 두께의 절반을 매번 빼야 해서 숫자만 봐서는 단차가 맞는지 알 수 없다.
+    static GameObject Ledge(GameObject root, string name, float centerX, float topY, float width, float thickness) {
+        return Platform(root, name, new Vector3(centerX, topY - thickness / 2f, 0f), new Vector2(width, thickness));
+    }
+
+    // 왕복 이동 발판. 통과 발판 성질은 그대로 두고 이동만 얹는다.
+    // offset 은 시작 위치 기준 상대 이동량이라, 방이 어디에 배치되든 같은 궤적을 그린다.
+    static void Mover(GameObject root, string name, float centerX, float topY, float width,
+        Vector2 offset, float speed, float startDelay = 0f) {
+        GameObject obj = Ledge(root, name, centerX, topY, width, PlatThick);
+
+        // MovingPlatform 이 RequireComponent 로 알아서 붙이긴 하지만, 그 경우 기본값이 Dynamic 이라
+        // 프리팹에 중력에 떨어지는 발판으로 저장된다. 여기서 먼저 붙여 Kinematic 으로 확정한다.
+        obj.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+
+        MovingPlatform mover = obj.AddComponent<MovingPlatform>();
+        mover.moveOffset = offset;
+        mover.speed = speed;
+        mover.startDelay = startDelay;
+    }
+
+    // 밟으면 잠시 뒤 무너졌다가 되살아나는 발판. 기본값(0.4초)보다 넉넉히 잡는 이유는, 오비에서
+    // 떨어지면 방 처음으로 되돌아가기 때문에 반응할 틈이 너무 짧으면 금세 지치기 때문이다.
+    static void Crumble(GameObject root, string name, float centerX, float topY, float width, float fallDelay = 0.8f) {
+        GameObject obj = Ledge(root, name, centerX, topY, width, PlatThick);
+
+        CrumblingPlatform crumble = obj.AddComponent<CrumblingPlatform>();
+        crumble.fallDelay = fallDelay;
+        crumble.respawnDelay = 1.5f;
+    }
+
+    // 가시밭. 낙사와 달리 즉시 방을 다시 시작시키지 않고 자아 게이지만 깎아, "실수해도 계속 갈 수는 있는"
+    // 실패를 만든다. 피격 무적(0.9초)이 걸리므로 밭을 가로질러도 한 번에 녹지는 않는다.
+    static void Spikes(GameObject root, string name, float centerX, float topY, float width, int damage) {
+        GameObject obj = Block(root, name, new Vector3(centerX, topY - SpikeThick / 2f, 0f), new Vector2(width, SpikeThick));
+
+        // 지형 레이어에서 빼 둔다. 트리거라 접지 판정에는 어차피 안 걸리지만, 지형 취급으로 남겨 두면
+        // 나중에 레이어로 지형을 훑는 코드가 가시를 바닥으로 세게 된다.
+        obj.layer = 0;
+
+        BoxCollider2D col = obj.GetComponent<BoxCollider2D>();
+        col.isTrigger = true;
+        col.usedByEffector = false;
+
+        obj.AddComponent<DamageZone>().damage = damage;
+    }
+
+    static GameObject Block(GameObject parent, string name, Vector3 center, Vector2 size) {
         GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Quad);
         obj.name = name;
         obj.layer = groundLayer;
@@ -498,6 +743,7 @@ public static class DungeonRoomPrefabBuilder {
 
         Object.DestroyImmediate(obj.GetComponent<Collider>()); // 3D 콜라이더는 2D 물리에서 안 쓰인다.
         obj.AddComponent<BoxCollider2D>();
+        return obj;
     }
 
     static GameObject TriggerVolume(GameObject parent, string name, Vector3 center, Vector2 size) {

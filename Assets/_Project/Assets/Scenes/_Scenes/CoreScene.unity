@@ -524,7 +524,8 @@ MonoBehaviour:
   objectiveId: 
   memoryShardReward: 1
   deathHealthRestoreRatio: 1
-  fallDamage: 0
+  fallDamage: 10
+  fallInvincibleTime: 3
 --- !u!61 &102344949
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -2870,6 +2871,10 @@ MonoBehaviour:
   - {fileID: 4650319921055490116, guid: 17550729e9b63d449b7c14738bbb7cae, type: 3}
   - {fileID: 4650319921055490116, guid: c57548e0bc6d68340a907e14a7a55a4c, type: 3}
   - {fileID: 4650319921055490116, guid: b27d0e68d5208794c97633bc8c139b3d, type: 3}
+  - {fileID: 8255311799741721595, guid: 75545aa0094972140a2cf3da6da00f8a, type: 3}
+  - {fileID: 8100431435434129132, guid: 93b6eb03b4e9b054d90a44a7a8f5321d, type: 3}
+  - {fileID: 6086952435578259005, guid: 253032b9365b2614186a7b365c43599d, type: 3}
+  - {fileID: 3489314595285940284, guid: 269b9e1a2bba4324999aa273417c1bbf, type: 3}
   verticalRoomPrefabs:
   - {fileID: 4650319921055490116, guid: 43a83cb08abc3c248b2b82595db1f74f, type: 3}
   - {fileID: 4650319921055490116, guid: faed4bd35868de14099d0ff73665c56e, type: 3}
