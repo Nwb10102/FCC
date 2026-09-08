@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class PauseMenuController : MonoBehaviour {
@@ -9,6 +8,11 @@ public class PauseMenuController : MonoBehaviour {
     public GameObject mainPanel; // 일시정지 메인창.
     public GameObject settingsPanel; // 설정창.
     public GameObject videoSubPanel; // 설정창 안의 비디오 설정 하위창.
+
+    [Header("씬 전환")]
+    // 빌드 세팅에서 메뉴 씬 이름을 바꾸면 여기도 바꿔야 한다. 다른 씬 이름도 전부 인스펙터 필드로 두고 있다
+    // (MainMenuController.startSceneName · Ui_LoadScenes.sceneName).
+    public string mainMenuSceneName = "Main_menu";
 
     #endregion
     #region 컴포넌트 변수
@@ -79,9 +83,12 @@ public class PauseMenuController : MonoBehaviour {
     #region 씬 전환 관련 함수
 
     // [버튼 연결] 메인 메뉴로 나가기.
+    // 씬 이동을 SceneManager로 직접 하지 않고 ScreenFader를 거치는 이유는, 페이드·클릭 차단·연타 방지·
+    // timeScale 복구가 전부 거기 모여 있기 때문이다. 여기서만 직접 부르면 이 버튼만 화면이 뚝 끊기고,
+    // 나중에 전환 연출을 바꿔도 이 경로만 빠진다. 씬에 페이더가 없으면 알아서 즉시 이동한다.
     public void GoToMainMenu() {
         Time.timeScale = 1f;
-        SceneManager.LoadScene("Main_menu");
+        ScreenFader.LoadScene(mainMenuSceneName);
     }
 
     #endregion

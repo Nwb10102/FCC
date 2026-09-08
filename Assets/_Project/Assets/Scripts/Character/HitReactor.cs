@@ -10,6 +10,11 @@ public class HitReactor : MonoBehaviour {
     [Header("넉백")]
     public float knockbackForce = 6f; // 넉백 세기.
 
+    // 넉백이 도는 동안 일반 이동 로직을 건너뛰는 시간. 예전에는 이 값이 Player_move·GroundMoveSystem·
+    // FlyMoveSystem 세 곳의 ApplyKnockback 기본 인자로 각각 박혀 있었고, 호출부인 여기가 인자를 넘기지
+    // 않아 한 곳만 고치면 플레이어와 몬스터의 넉백 감각이 조용히 어긋났다. 값을 여기 하나로 모은다.
+    public float knockbackLockDuration = 0.15f;
+
     [Header("이펙트 위치")]
     public Vector2 hitPointOffset = Vector2.zero; // 캐릭터 기준으로 이펙트 위치를 미세 조정.
     public float hitPointPullIn = 0.35f; // 공격이 들어온 쪽으로 얼마나 당겨서 띄울지. 0이면 캐릭터 중심에서 터진다.
@@ -73,9 +78,9 @@ public class HitReactor : MonoBehaviour {
     void ApplyKnockback(Vector2 hitDir) {
         Vector2 force = hitDir * knockbackForce;
 
-        if (groundMove != null) groundMove.ApplyKnockback(force);
-        if (flyMove != null) flyMove.ApplyKnockback(force);
-        if (playerMove != null) playerMove.ApplyKnockback(force);
+        if (groundMove != null) groundMove.ApplyKnockback(force, knockbackLockDuration);
+        if (flyMove != null) flyMove.ApplyKnockback(force, knockbackLockDuration);
+        if (playerMove != null) playerMove.ApplyKnockback(force, knockbackLockDuration);
     }
 
     // 공격 원점에서 피격자를 향하는 방향. 넉백과 이펙트/쉐이크가 같은 방향을 공유한다.

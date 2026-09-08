@@ -18,6 +18,7 @@ public class SpriteStateAnimator : MonoBehaviour {
 
     SpriteRenderer spriteRenderer;
     string currentState;
+    readonly HashSet<string> warnedStates = new(); // 같은 경고를 반복해서 찍지 않기 위한 기록.
 
     #endregion
 
@@ -40,10 +41,21 @@ public class SpriteStateAnimator : MonoBehaviour {
         if (spriteRenderer == null || stateName == currentState) return;
 
         SpriteState match = states.Find(s => s.name == stateName);
-        if (match == null || match.sprite == null) return;
+        if (match == null || match.sprite == null) {
+            // 예전에는 그냥 return 했다. 상태 이름은 몬스터 코드에 문자열로 박혀 있고 여기 목록은 인스펙터에
+            // 손으로 적는 값이라, 오타 하나나 이름 변경만으로 그 연출이 통째로 사라지는데 로그조차 남지 않았다.
+            WarnOnce(stateName, match == null ? "목록에 없습니다" : "스프라이트가 비어 있습니다");
+            return;
+        }
 
         spriteRenderer.sprite = match.sprite;
         currentState = stateName;
+    }
+
+    // 같은 상태를 매 프레임 요청할 수 있으므로 이름당 한 번만 알린다. 콘솔이 도배되면 오히려 못 보고 넘긴다.
+    void WarnOnce(string stateName, string reason) {
+        if (!warnedStates.Add(stateName)) return;
+        Debug.LogWarning($"[SpriteStateAnimator] '{name}' — 상태 '{stateName}' 의 {reason}. 호출부와 인스펙터의 상태 이름을 맞추세요.", this);
     }
 
     #endregion

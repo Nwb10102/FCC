@@ -9,6 +9,11 @@ public class CrumblingPlatform : MonoBehaviour {
     public float fallDelay = 0.4f;   // 밟은 뒤 무너지기까지.
     public float respawnDelay = 2f;  // 다시 나타나기까지.
 
+    [Header("감지")]
+    // 다른 트리거 볼륨(DungeonRoom·DungeonFallZone·DialogueTriggerZone 등)은 전부 태그를 필드로 노출한다.
+    // 여기만 리터럴로 박혀 있어서, 플레이어 태그를 바꾸면 이 발판만 조용히 반응하지 않았다.
+    public string playerTag = "Player";
+
     #endregion
     #region 컴포넌트 변수
 
@@ -27,7 +32,7 @@ public class CrumblingPlatform : MonoBehaviour {
     }
 
     void OnCollisionEnter2D(Collision2D collision) {
-        if (triggered || !collision.collider.CompareTag("Player")) return;
+        if (triggered || !collision.collider.CompareTag(playerTag)) return;
         StartCoroutine(CrumbleRoutine());
     }
 

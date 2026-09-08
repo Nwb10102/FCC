@@ -40,12 +40,24 @@ public class Player_AreaCameraController : MonoBehaviour {
     private bool _originalPlayerFacingRotation;
     private Transform _originalFollow;
 
-    private void Awake() {
-        if (targetCamera == null) {
-            var go = GameObject.Find("Player_Camera");
-            if (go != null)
-                targetCamera = go.GetComponent<CinemachineCamera>();
+    // targetCamera를 비워 뒀을 때의 보조 탐색. 예전에는 GameObject.Find("Player_Camera")로 이름을 보고 찾았는데,
+    // 카메라 오브젝트의 이름을 바꾸거나 다른 부모 밑으로 옮기기만 해도 이 씬의 카메라 영역 전환이
+    // 경고 한 줄만 남기고 통째로 죽었다. 타입으로 찾으면 이름·계층이 바뀌어도 따라간다.
+    private CinemachineCamera FindCameraInScene() {
+        CinemachineCamera[] found = FindObjectsByType<CinemachineCamera>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (found.Length == 0) return null;
+
+        // 여러 대가 있으면 어느 것을 집었는지 알 수 없으므로, 인스펙터로 지정하라고 알린다.
+        if (found.Length > 1) {
+            Debug.LogWarning($"[{name}] 씬에 CinemachineCamera가 {found.Length}대 있어 '{found[0].name}'을 골랐습니다. targetCamera를 직접 연결하세요.", this);
         }
+
+        return found[0];
+    }
+
+    private void Awake() {
+        if (targetCamera == null)
+            targetCamera = FindCameraInScene();
 
         if (player == null) {
             var playerObj = GameObject.FindGameObjectWithTag(playerTag);
@@ -57,7 +69,7 @@ public class Player_AreaCameraController : MonoBehaviour {
             _playerMove = player.GetComponent<Player_move>();
 
         if (targetCamera == null) {
-            Debug.LogWarning($"[{name}] 'Player_Camera' GameObject를 찾을 수 없습니다.");
+            Debug.LogError($"[{name}] 씬에서 CinemachineCamera를 찾지 못해 이 영역의 카메라 전환이 동작하지 않습니다. targetCamera를 연결하세요.", this);
             return;
         }
 
