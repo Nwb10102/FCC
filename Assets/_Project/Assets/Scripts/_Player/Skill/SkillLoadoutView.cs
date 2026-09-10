@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 // 거울(SaveMirror)에서 여는 스킬 정비 화면. 장착 슬롯 3칸과 해금된 스킬 목록을 보여주고 교체시킨다.
 //
@@ -27,10 +29,30 @@ public class SkillLoadoutView : MonoBehaviour {
     public TMP_Text listTitleLabel; // "보유 스킬". 목록이 비면 emptyListText로 갈아치운다.
     public TMP_Text descriptionLabel; // 커서가 올라간 스킬의 설명문.
 
+    [Header("연결 — 강화 패널")]
+    // 강화 관련 칸은 비워둬도 된다. 비면 그 부분만 뜨지 않고 장착·해제 같은 나머지 정비 기능은 그대로 동작한다.
+    public GameObject upgradePanelRoot; // 강화 영역 전체. 강화 단계가 없는 스킬을 고르면 통째로 꺼진다.
+    public TMP_Text levelLabel;         // "Lv 1 / 2".
+    public TMP_Text statsLabel;         // 현재 → 다음 수치 비교표.
+    public TMP_Text costLabel;          // 필요한 조각 수와 그 값이 나온 근거.
+    public Button upgradeButton;
+    public TMP_Text upgradeButtonLabel;
+    public Button refundButton;
+    public TMP_Text refundButtonLabel;
+
+    [Header("강화 표시 색")]
+    public Color statImprovedColor = new(0.53f, 0.78f, 0.61f, 1f); // 다음 레벨에서 좋아지는 수치.
+    public Color statSameColor = new(0.39f, 0.36f, 0.44f, 1f);     // 레벨이 올라도 그대로인 수치.
+
     [Header("문구")]
-    // 제목·도움말처럼 고정된 문구는 프리팹의 TMP에 직접 적는다. 여기 있는 둘은 상황에 따라 코드가 갈아끼우는 것들.
+    // 제목·도움말처럼 고정된 문구는 프리팹의 TMP에 직접 적는다. 여기 있는 것들은 상황에 따라 코드가 갈아끼운다.
     public string emptyListText = "아직 해금한 스킬이 없습니다.";
     public string emptySlotText = "비어 있음";
+    public string upgradeText = "Lv {0} 로 강화";        // {0} = 올라갈 레벨.
+    public string shortOfShardsText = "조각 {0} 부족";   // {0} = 모자란 개수.
+    public string maxLevelText = "최대 레벨";
+    public string refundText = "되돌리기 · 조각 {0} 반환"; // {0} = 돌려받을 개수.
+    public string costFormat = "필요 {0} ({1})   ·   보유 {2}"; // {0} 비용, {1} 근거, {2} 보유량.
 
     #endregion
     #region 컴포넌트 변수
@@ -75,6 +97,9 @@ public class SkillLoadoutView : MonoBehaviour {
         for (int i = 0; i < SkillManager.SlotCount; i++) {
             slotViews[i].Bind(i, SelectSlot);
         }
+
+        if (upgradeButton != null) upgradeButton.onClick.AddListener(UpgradeHighlighted);
+        if (refundButton != null) refundButton.onClick.AddListener(RefundHighlighted);
 
         windowRoot.SetActive(false);
     }
@@ -196,6 +221,10 @@ public class SkillLoadoutView : MonoBehaviour {
         if (keyboard.deleteKey.wasPressedThisFrame || keyboard.backspaceKey.wasPressedThisFrame) {
             UnequipSelectedSlot();
         }
+
+        // 강화·되돌리기는 장착(Enter/Space)과 겹치지 않는 키로 둔다. 손이 미끄러져 조각을 쓰면 곤란하다.
+        if (keyboard.eKey.wasPressedThisFrame) UpgradeHighlighted();
+        if (keyboard.rKey.wasPressedThisFrame) RefundHighlighted();
     }
 
     #endregion
@@ -239,6 +268,20 @@ public class SkillLoadoutView : MonoBehaviour {
         Refresh();
     }
 
+    void UpgradeHighlighted() {
+        SkillBase skill = HighlightedSkill;
+        if (manager == null || skill == null) return;
+
+        if (manager.TryUpgradeSkill(skill)) Refresh();
+    }
+
+    void RefundHighlighted() {
+        SkillBase skill = HighlightedSkill;
+        if (manager == null || skill == null) return;
+
+        if (manager.TryRefundSkill(skill)) Refresh();
+    }
+
     // 마우스로 줄을 누르면 커서를 그 줄로 옮기고 바로 장착까지 한다. 키보드 흐름과 결과가 같도록.
     void HandleRowClicked(SkillBase skill) {
         int index = rows.FindIndex(row => row.Skill == skill);
@@ -270,10 +313,15 @@ public class SkillLoadoutView : MonoBehaviour {
         highlightedRow = Mathf.Clamp(highlightedRow, 0, Mathf.Max(0, rows.Count - 1));
     }
 
+    // 지금 커서가 올라간 스킬. 목록이 비었거나 커서가 범위를 벗어나면 null.
+    SkillBase HighlightedSkill =>
+        highlightedRow >= 0 && highlightedRow < rows.Count ? rows[highlightedRow].Skill : null;
+
     void Refresh() {
         RefreshSlots();
         RefreshRows();
         RefreshDescription();
+        RefreshUpgradePanel();
     }
 
     void RefreshSlots() {
@@ -295,12 +343,104 @@ public class SkillLoadoutView : MonoBehaviour {
     void RefreshDescription() {
         if (descriptionLabel == null) return;
 
-        if (rows.Count == 0 || highlightedRow < 0 || highlightedRow >= rows.Count) {
-            descriptionLabel.text = string.Empty;
+        SkillBase skill = HighlightedSkill;
+        descriptionLabel.text = skill != null ? skill.description : string.Empty;
+    }
+
+    #endregion
+    #region 강화 패널 갱신
+
+    void RefreshUpgradePanel() {
+        if (upgradePanelRoot == null) return;
+
+        SkillBase skill = HighlightedSkill;
+
+        // 강화 단계가 아예 없는 스킬(Pure Dream 등)은 비교표도 버튼도 의미가 없으므로 통째로 감춘다.
+        bool hasLevels = skill != null && manager.GetMaxLevel(skill) > 0;
+        upgradePanelRoot.SetActive(hasLevels);
+        if (!hasLevels) return;
+
+        int level = manager.GetLevel(skill);
+        bool atMax = manager.IsMaxLevel(skill);
+
+        if (levelLabel != null) {
+            levelLabel.text = atMax ? $"Lv {level} · 완성" : $"Lv {level} / {manager.GetMaxLevel(skill)}";
+        }
+        if (statsLabel != null) statsLabel.text = BuildStatTable(skill, level, atMax);
+
+        RefreshCostLabel(skill, atMax);
+        RefreshUpgradeButton(skill, atMax);
+        RefreshRefundButton(skill);
+    }
+
+    // 현재 레벨 수치를 적고, 다음 레벨이 있으면 그 옆에 화살표로 이어 붙인다.
+    // 좋아지는 줄만 색을 바꿔, 무엇이 달라지는지 한눈에 보이게 한다.
+    string BuildStatTable(SkillBase skill, int level, bool atMax) {
+        IReadOnlyList<SkillBase.SkillStat> current = skill.DescribeLevel(level);
+        if (current == null || current.Count == 0) return string.Empty;
+
+        IReadOnlyList<SkillBase.SkillStat> next = atMax ? null : skill.DescribeLevel(level + 1);
+        string improved = ColorUtility.ToHtmlStringRGB(statImprovedColor);
+        string same = ColorUtility.ToHtmlStringRGB(statSameColor);
+
+        StringBuilder sb = new();
+        for (int i = 0; i < current.Count; i++) {
+            if (i > 0) sb.Append('\n');
+            sb.Append(current[i].label).Append("   <b>").Append(current[i].value).Append("</b>");
+
+            if (next == null || i >= next.Count) continue;
+
+            bool changed = next[i].value != current[i].value;
+            sb.Append("   <color=#").Append(changed ? improved : same).Append('>')
+              .Append("→ ").Append(next[i].value).Append("</color>");
+        }
+
+        return sb.ToString();
+    }
+
+    void RefreshCostLabel(SkillBase skill, bool atMax) {
+        if (costLabel == null) return;
+
+        if (atMax) {
+            costLabel.text = maxLevelText;
             return;
         }
 
-        descriptionLabel.text = rows[highlightedRow].Skill.description;
+        // 하한이 걸렸는지 비율이 이겼는지를 그대로 적는다. 하한인데 "보유의 10%"라고 쓰면 숫자와 설명이 어긋난다.
+        int cost = manager.GetUpgradeCost(skill);
+        string basis = manager.IsUpgradeCostAtMinimum(skill)
+            ? $"최소 {cost}"
+            : $"보유의 {Mathf.RoundToInt(manager.GetUpgradePercent(skill) * 100f)}%";
+
+        costLabel.text = string.Format(costFormat, cost, basis, manager.ShardCount);
+    }
+
+    void RefreshUpgradeButton(SkillBase skill, bool atMax) {
+        if (upgradeButton == null) return;
+
+        upgradeButton.gameObject.SetActive(!atMax);
+        if (atMax) return;
+
+        bool can = manager.CanUpgrade(skill);
+        upgradeButton.interactable = can;
+
+        if (upgradeButtonLabel == null) return;
+
+        upgradeButtonLabel.text = can
+            ? string.Format(upgradeText, manager.GetLevel(skill) + 1)
+            : string.Format(shortOfShardsText, manager.GetUpgradeCost(skill) - manager.ShardCount);
+    }
+
+    // 산 적이 없는 단계(시작 레벨로 받은 것)는 돌려줄 것이 없으므로 버튼 자체를 감춘다.
+    void RefreshRefundButton(SkillBase skill) {
+        if (refundButton == null) return;
+
+        bool can = manager.CanRefund(skill);
+        refundButton.gameObject.SetActive(can);
+
+        if (can && refundButtonLabel != null) {
+            refundButtonLabel.text = string.Format(refundText, manager.GetRefundAmount(skill));
+        }
     }
 
     #endregion

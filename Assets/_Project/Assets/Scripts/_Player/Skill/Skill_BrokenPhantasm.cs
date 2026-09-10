@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 칼잡이의 투사체 스킬. 슬롯 키를 누르고 있으면 마우스 방향으로 조준선이 뜨고, 떼는 순간 그 방향으로
@@ -21,15 +22,16 @@ public class Skill_BrokenPhantasm : SkillBase, IAimableSkill {
     #region 인스펙터 변수
 
     [Header("레벨")]
-    [Range(0, 2)]
-    public int level = 0; // 0: 기본, 1: 데미지·사거리 증가, 2: 데미지 최대치 + 2체 관통.
-
-    // 인덱스 = 레벨. 데미지·관통은 기획서 수치(30/42/60, Lv2 2체 관통) 그대로, speed는 기존 게임 감각 유지용 자체 값.
+    // 인덱스 = 레벨 (0: 기본, 1: 데미지·사거리 증가, 2: 데미지 최대치 + 2체 관통).
+    // 데미지·관통은 기획서 수치(30/42/60, Lv2 2체 관통) 그대로, speed는 기존 게임 감각 유지용 자체 값.
+    // **지금 몇 레벨인지는 여기가 아니라 SkillManager가 정합니다** (SkillBase.runtimeLevel).
     public LevelData[] levels = {
         new() { damage = 30, range = 30f, speed = 60f, pierceCount = 1 },
         new() { damage = 42, range = 50f, speed = 72f, pierceCount = 1 },
         new() { damage = 60, range = 50f, speed = 84f, pierceCount = 2 },
     };
+
+    public override int MaxLevel => levels != null && levels.Length > 0 ? levels.Length - 1 : 0;
 
     [Header("투사체")]
     public SkillProjectile projectilePrefab; // **Kinematic Rigidbody2D + Is Trigger 콜라이더가 붙은 프리팹을 연결하세요.**
@@ -121,8 +123,20 @@ public class Skill_BrokenPhantasm : SkillBase, IAimableSkill {
     }
 
     LevelData GetLevelData() {
-        int index = Mathf.Clamp(level, 0, levels.Length - 1);
-        return levels[index];
+        if (levels == null || levels.Length == 0) return default;
+        return levels[Mathf.Clamp(LevelIndex, 0, levels.Length - 1)];
+    }
+
+    // 정비 화면 비교표용. 레벨이 올라도 줄 순서·개수가 달라지면 안 된다.
+    public override IReadOnlyList<SkillStat> DescribeLevel(int level) {
+        if (levels == null || levels.Length == 0) return System.Array.Empty<SkillStat>();
+
+        LevelData data = levels[Mathf.Clamp(level, 0, levels.Length - 1)];
+        return new[] {
+            new SkillStat("피해", data.damage.ToString()),
+            new SkillStat("사거리", data.range.ToString("0.#")),
+            new SkillStat("관통", $"{data.pierceCount}체"),
+        };
     }
 
     #endregion

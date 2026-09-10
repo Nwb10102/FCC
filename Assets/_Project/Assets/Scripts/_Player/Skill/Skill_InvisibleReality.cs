@@ -24,14 +24,15 @@ public class Skill_InvisibleReality : SkillBase, IAimableSkill {
     #region 인스펙터 변수
 
     [Header("레벨")]
-    [Range(0, 1)]
-    public int level = 0; // 0: 지속 7초·1개, 1: 지속 14초·3개.
-
-    // 인덱스 = 레벨. 기획서 수치(범위 1.8 고정, 지속 7→14초, 최대 개수 1→3) 그대로.
+    // 인덱스 = 레벨 (0: 지속 7초·1개, 1: 지속 14초·3개).
+    // 기획서 수치(범위 1.8 고정, 지속 7→14초, 최대 개수 1→3) 그대로.
+    // **지금 몇 레벨인지는 여기가 아니라 SkillManager가 정합니다** (SkillBase.runtimeLevel).
     public LevelData[] levels = {
         new() { range = 1.8f, duration = 7f, maxCount = 1 },
         new() { range = 1.8f, duration = 14f, maxCount = 3 },
     };
+
+    public override int MaxLevel => levels != null && levels.Length > 0 ? levels.Length - 1 : 0;
 
     [Header("벽")]
     public SkillInvisibleWall wallPrefab; // **비트리거 Collider2D(BoxCollider2D) + SpriteRenderer가 붙은 프리팹을 연결하세요.**
@@ -116,8 +117,20 @@ public class Skill_InvisibleReality : SkillBase, IAimableSkill {
     }
 
     LevelData GetLevelData() {
-        int index = Mathf.Clamp(level, 0, levels.Length - 1);
-        return levels[index];
+        if (levels == null || levels.Length == 0) return default;
+        return levels[Mathf.Clamp(LevelIndex, 0, levels.Length - 1)];
+    }
+
+    // 정비 화면 비교표용. 레벨이 올라도 줄 순서·개수가 달라지면 안 된다.
+    public override IReadOnlyList<SkillStat> DescribeLevel(int level) {
+        if (levels == null || levels.Length == 0) return System.Array.Empty<SkillStat>();
+
+        LevelData data = levels[Mathf.Clamp(level, 0, levels.Length - 1)];
+        return new[] {
+            new SkillStat("범위", data.range.ToString("0.0")),
+            new SkillStat("지속", $"{data.duration:0.#}초"),
+            new SkillStat("최대 개수", data.maxCount.ToString()),
+        };
     }
 
     // maxCount를 넘기지 않도록, 자연 소멸된 항목을 먼저 정리하고 그래도 넘치면 가장 오래된 것부터 없앤다.

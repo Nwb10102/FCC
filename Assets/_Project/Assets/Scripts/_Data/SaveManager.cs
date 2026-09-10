@@ -86,6 +86,12 @@ public class SaveManager : MonoBehaviour {
             data.memoryShardCount = shards.Count;
         }
 
+        if (player != null && player.TryGetComponent(out SkillManager skills)) {
+            data.unlockedSkillIds = skills.CaptureUnlocked();
+            data.skillLevels = skills.CaptureLevels();
+            data.equippedSkillIds = skills.CaptureEquipped();
+        }
+
         if (ObjectiveManager.Instance != null) {
             data.objectives = ObjectiveManager.Instance.CaptureObjectives();
             data.startedMissions = ObjectiveManager.Instance.CaptureStartedMissions();
@@ -142,6 +148,12 @@ public class SaveManager : MonoBehaviour {
             if (data.maxHealth > 0 && player.TryGetComponent(out Health health)) health.SetHealth(data.currentHealth);
 
             if (player.TryGetComponent(out Player_MemoryShardInventory shards)) shards.SetCount(data.memoryShardCount);
+
+            // 조각을 먼저 되돌린 뒤 스킬을 복원한다. 강화 비용이 보유량에서 계산되므로,
+            // 복원 직후 정비 화면을 열었을 때 표시되는 비용이 저장 시점과 어긋나지 않게 하기 위함이다.
+            if (player.TryGetComponent(out SkillManager skills)) {
+                skills.RestoreState(data.unlockedSkillIds, data.skillLevels, data.equippedSkillIds);
+            }
         }
 
         if (ObjectiveManager.Instance != null) {

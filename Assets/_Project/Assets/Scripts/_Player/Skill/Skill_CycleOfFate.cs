@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 저글러의 기본 공 스킬. 칼잡이처럼 슬롯 키를 누르고 있으면 마우스 방향으로 포물선 궤적 미리보기가 뜨고,
@@ -34,15 +35,16 @@ public class Skill_CycleOfFate : SkillBase, IAimableSkill {
     #region 인스펙터 변수
 
     [Header("레벨")]
-    [Range(0, 2)]
-    public int level = 0; // 0: 기본, 1: 사이즈·데미지·사거리 증가, 2: 스택 적립량·공 개수 증가.
-
-    // 인덱스 = 레벨. 기획서의 대략적인 수치를 임시로 채워 뒀다 — 밸런스 확정 전까지는 참고용.
+    // 인덱스 = 레벨 (0: 기본, 1: 사이즈·데미지·사거리 증가, 2: 스택 적립량·공 개수 증가).
+    // 기획서의 대략적인 수치를 임시로 채워 뒀다 — 밸런스 확정 전까지는 참고용.
+    // **지금 몇 레벨인지는 여기가 아니라 SkillManager가 정합니다** (SkillBase.runtimeLevel).
     public LevelData[] levels = {
         new() { ballCount = 1, ballScale = 1f, damage = 12, range = 6f, stackGainPerUse = 1, explosionDamage = 20 },
         new() { ballCount = 1, ballScale = 1.3f, damage = 18, range = 8f, stackGainPerUse = 1, explosionDamage = 30 },
         new() { ballCount = 2, ballScale = 1.3f, damage = 18, range = 8f, stackGainPerUse = 2, explosionDamage = 45 },
     };
+
+    public override int MaxLevel => levels != null && levels.Length > 0 ? levels.Length - 1 : 0;
 
     [Header("투사체")]
     public SkillBouncingProjectile projectilePrefab; // **Rigidbody2D + 트리거가 아닌 Collider2D + 반발력 있는 PhysicsMaterial2D가 필요합니다.**
@@ -171,8 +173,22 @@ public class Skill_CycleOfFate : SkillBase, IAimableSkill {
     }
 
     LevelData GetLevelData() {
-        int index = Mathf.Clamp(level, 0, levels.Length - 1);
-        return levels[index];
+        if (levels == null || levels.Length == 0) return default;
+        return levels[Mathf.Clamp(LevelIndex, 0, levels.Length - 1)];
+    }
+
+    // 정비 화면 비교표용. 레벨이 올라도 줄 순서·개수가 달라지면 안 된다.
+    public override IReadOnlyList<SkillStat> DescribeLevel(int level) {
+        if (levels == null || levels.Length == 0) return System.Array.Empty<SkillStat>();
+
+        LevelData data = levels[Mathf.Clamp(level, 0, levels.Length - 1)];
+        return new[] {
+            new SkillStat("공 개수", data.ballCount.ToString()),
+            new SkillStat("공 크기", data.ballScale.ToString("0.0")),
+            new SkillStat("피해", data.damage.ToString()),
+            new SkillStat("스택 적립", data.stackGainPerUse.ToString()),
+            new SkillStat("폭발 피해", data.explosionDamage.ToString()),
+        };
     }
 
     Vector2 GetLaunchOrigin(Transform owner, Vector2 direction) {

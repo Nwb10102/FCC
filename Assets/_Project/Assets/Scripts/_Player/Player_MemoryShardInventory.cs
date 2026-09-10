@@ -20,6 +20,15 @@ public class Player_MemoryShardInventory : MonoBehaviour {
         count = Mathf.Max(0, count + amount);
     }
 
+    // 스킬 강화 등으로 조각을 소비한다. 모자라면 아무것도 하지 않고 false를 돌려준다 —
+    // 일부만 깎고 실패하면 부른 쪽이 되돌릴 방법이 없어, 차감과 판정을 한 곳에 묶어 둔다.
+    public bool Spend(int amount) {
+        if (amount <= 0 || count < amount) return false;
+
+        count -= amount;
+        return true;
+    }
+
     // 세이브 복원 전용. 직접 증감이 아니라 값을 통째로 맞출 때 쓴다.
     public void SetCount(int value) {
         count = Mathf.Max(0, value);

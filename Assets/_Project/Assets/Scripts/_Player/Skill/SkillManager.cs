@@ -16,8 +16,14 @@ public class SkillManager : MonoBehaviour {
 
     [Header("보유 스킬")]
     // 해금된 스킬 에셋 목록. 거울 정비 UI가 이 목록을 장착 후보로 뿌린다.
-    // **지금은 인스펙터로 채우지만, 기억 조각 해금이 붙으면 세이브에서 UnlockSkill()로 채우게 됩니다.**
+    // 해금은 스토리 진행으로만 일어난다 — 기억 조각은 해금이 아니라 강화에만 쓴다.
     public List<SkillBase> unlockedSkills = new();
+
+    [Header("전체 스킬 (세이브 복원용)")]
+    // 게임에 존재하는 모든 스킬 에셋. 세이브에는 id만 적히므로, 불러올 때 id를 다시 에셋으로 되돌리려면
+    // 아직 해금되지 않은 것까지 전부 알고 있어야 한다.
+    // **새 스킬 에셋을 만들면 여기에도 추가하세요.** 빠뜨리면 그 스킬은 세이브에서 복원되지 않는다.
+    public List<SkillBase> allSkills = new();
 
     [Header("장착 슬롯")]
     // 슬롯 0·1·2. 인스펙터에 미리 넣어두면 그게 시작 장착 상태가 된다.
@@ -28,6 +34,15 @@ public class SkillManager : MonoBehaviour {
     // 슬롯 0·1·2를 발동시킬 키. Client.inputactions에 아직 스킬 액션이 없어 키보드를 직접 읽는다.
     // **Skill1~3 액션이 생기면 이 배열 대신 InputActionReference로 갈아끼우세요.**
     public Key[] slotKeys = { Key.Q, Key.W, Key.E };
+
+    [Header("강화 비용")]
+    // 강화 비용 = max(하한, 그때 보유한 조각 × 비율). 인덱스 = 강화 단계(0: Lv0→1, 1: Lv1→2).
+    //
+    // 고정값이 아니라 보유량 비율로 두는 이유는 "모아둘수록 비싸진다"는 압박을 주기 위함이다.
+    // 다만 비율만 쓰면 조각 1개만 있어도 강화가 되어 "조각이 모자라 못 올린다"는 상황이 사라지므로,
+    // 단계별 하한을 함께 둔다. 초반(가난할 때)에는 하한이, 후반에는 비율이 값을 정한다.
+    public float[] upgradePercents = { 0.10f, 0.20f };
+    public int[] upgradeMinimums = { 3, 5 };
 
     [Header("디버그")]
     public bool logCooldown = true; // 쿨타임 중에 눌렀을 때 남은 시간을 콘솔에 찍는다. 감각 조정용이라 빌드에선 꺼도 된다.
@@ -41,10 +56,23 @@ public class SkillManager : MonoBehaviour {
     // (슬롯 번호, 발동한 스킬) — 쿨타임 게이지 UI가 구독한다.
     public event Action<int, SkillBase> onSkillUsed;
 
+    // (스킬, 바뀐 레벨) — 강화·환불·세이브 복원으로 레벨이 달라졌을 때. 정비 UI가 구독해 수치를 다시 그린다.
+    public event Action<SkillBase, int> onSkillLeveled;
+
     #endregion
     #region 컴포넌트 변수
 
     Player_move playerMove; // 대사·컷씬 중에는 스킬도 막아야 해서 이동 잠금 상태를 본다.
+    Player_MemoryShardInventory shards; // 강화 비용을 내고 환불을 돌려받는 지갑.
+
+    // 스킬 id → 지금 레벨. 스킬 에셋(SkillBase.runtimeLevel)에도 같은 값을 넣어주지만, 진짜 소유자는 여기다.
+    // 에셋에만 두면 여러 세이브 슬롯·새 게임 사이에 값이 새어 나간다.
+    readonly Dictionary<string, int> skillLevels = new();
+
+    // 스킬 id → 강화 단계별로 실제 지불한 조각 수. 환불은 이 값을 그대로 돌려준다.
+    // 환불 시점의 보유량으로 다시 계산하면, 조각이 적을 때 강화해 두고 많아진 뒤 되돌려
+    // 차액을 버는 무한 증식이 생긴다.
+    readonly Dictionary<string, List<int>> paidShards = new();
 
     // 슬롯별 조준 중 여부. IAimableSkill(마우스 조준형 스킬)에만 쓰인다 — 누른 순간 true, 뗀 순간 false.
     readonly bool[] isAimingSlot = new bool[SlotCount];
@@ -54,6 +82,7 @@ public class SkillManager : MonoBehaviour {
 
     void Awake() {
         playerMove = GetComponentInParent<Player_move>();
+        shards = GetComponentInParent<Player_MemoryShardInventory>();
 
         // 인스펙터에서 배열 크기를 잘못 건드려도 슬롯 수가 어긋나지 않게 맞춰 둔다.
         if (equippedSkills == null || equippedSkills.Length != SlotCount) {
@@ -68,6 +97,10 @@ public class SkillManager : MonoBehaviour {
 
         // 쿨타임이 ScriptableObject 에셋에 기록되는 구조라, 에디터에서 플레이를 다시 켜면 직전 판의 값이 남아 있다.
         ResetAllCooldowns();
+
+        // 레벨도 같은 이유로 에셋에 남으므로, 여기서 시작 레벨을 다시 심어 새 판을 깨끗하게 시작한다.
+        // 세이브를 불러오면 RestoreState가 이 값을 덮어쓴다.
+        SeedStartingLevels();
     }
 
     void Update() {
@@ -230,6 +263,153 @@ public class SkillManager : MonoBehaviour {
     }
 
     #endregion
+    #region 레벨 · 강화
+
+    // 알고 있는 모든 스킬에 시작 레벨을 심는다. 세이브를 불러오면 RestoreState가 덮어쓴다.
+    void SeedStartingLevels() {
+        skillLevels.Clear();
+        paidShards.Clear();
+
+        foreach (SkillBase skill in EnumerateKnownSkills()) {
+            SetLevelInternal(skill, skill.startingLevel, notify: false);
+        }
+    }
+
+    // 이 매니저가 아는 모든 스킬. allSkills에 넣는 것을 깜빡해도 해금·장착 목록에 있으면 함께 챙긴다.
+    IEnumerable<SkillBase> EnumerateKnownSkills() {
+        HashSet<SkillBase> seen = new();
+
+        foreach (SkillBase skill in allSkills) {
+            if (skill != null && seen.Add(skill)) yield return skill;
+        }
+        foreach (SkillBase skill in unlockedSkills) {
+            if (skill != null && seen.Add(skill)) yield return skill;
+        }
+        foreach (SkillBase skill in equippedSkills) {
+            if (skill != null && seen.Add(skill)) yield return skill;
+        }
+    }
+
+    public int GetLevel(SkillBase skill) {
+        if (skill == null) return 0;
+        return skillLevels.TryGetValue(skill.SkillId, out int level) ? level : skill.startingLevel;
+    }
+
+    public int GetMaxLevel(SkillBase skill) {
+        return skill != null ? skill.MaxLevel : 0;
+    }
+
+    // 지금 보유한 기억 조각 수. 정비 화면이 "필요 3 · 보유 12" 를 적을 때 쓴다.
+    public int ShardCount => shards != null ? shards.Count : 0;
+
+    public bool IsMaxLevel(SkillBase skill) {
+        return skill != null && GetLevel(skill) >= skill.MaxLevel;
+    }
+
+    // 다음 단계로 올리는 데 드는 조각 수. 더 올릴 수 없으면 -1.
+    // **보유량에 따라 값이 달라지므로 UI는 그릴 때마다 다시 물어봐야 합니다.**
+    public int GetUpgradeCost(SkillBase skill) {
+        if (skill == null || IsMaxLevel(skill)) return -1;
+
+        int step = GetLevel(skill);
+        float percent = step < upgradePercents.Length ? upgradePercents[step] : 0f;
+        int minimum = step < upgradeMinimums.Length ? upgradeMinimums[step] : 1;
+        int held = shards != null ? shards.Count : 0;
+
+        return Mathf.Max(minimum, Mathf.FloorToInt(held * percent));
+    }
+
+    // 하한과 비율 중 어느 쪽이 비용을 정했는지. 정비 UI가 "최소 3" / "보유의 10%" 를 골라 쓰기 위한 것으로,
+    // 하한이 걸렸는데 비율로 적으면 숫자와 설명이 어긋나 보인다.
+    public bool IsUpgradeCostAtMinimum(SkillBase skill) {
+        if (skill == null || IsMaxLevel(skill)) return false;
+
+        int step = GetLevel(skill);
+        float percent = step < upgradePercents.Length ? upgradePercents[step] : 0f;
+        int minimum = step < upgradeMinimums.Length ? upgradeMinimums[step] : 1;
+        int held = shards != null ? shards.Count : 0;
+
+        return minimum > Mathf.FloorToInt(held * percent);
+    }
+
+    public float GetUpgradePercent(SkillBase skill) {
+        if (skill == null || IsMaxLevel(skill)) return 0f;
+
+        int step = GetLevel(skill);
+        return step < upgradePercents.Length ? upgradePercents[step] : 0f;
+    }
+
+    public bool CanUpgrade(SkillBase skill) {
+        int cost = GetUpgradeCost(skill);
+        return cost > 0 && shards != null && shards.Count >= cost;
+    }
+
+    // 조각을 내고 한 단계 올린다. 낸 값은 환불용으로 기록해 둔다.
+    public bool TryUpgradeSkill(SkillBase skill) {
+        if (!CanUpgrade(skill)) return false;
+
+        int cost = GetUpgradeCost(skill);
+        if (!shards.Spend(cost)) return false;
+
+        int level = GetLevel(skill);
+        RecordPayment(skill, level, cost);
+        SetLevelInternal(skill, level + 1, notify: true);
+        return true;
+    }
+
+    // 되돌렸을 때 돌아오는 조각 수. 산 적이 없는 단계(시작 레벨로 받은 것)는 0이다.
+    public int GetRefundAmount(SkillBase skill) {
+        if (skill == null) return 0;
+
+        int level = GetLevel(skill);
+        if (level <= 0) return 0;
+        if (!paidShards.TryGetValue(skill.SkillId, out List<int> paid)) return 0;
+
+        int step = level - 1;
+        return step < paid.Count ? Mathf.Max(0, paid[step]) : 0;
+    }
+
+    public bool CanRefund(SkillBase skill) {
+        return GetRefundAmount(skill) > 0;
+    }
+
+    // 한 단계 되돌리고 그때 낸 조각을 그대로 돌려준다.
+    // **지금 보유량으로 다시 계산하면 안 된다** — 조각이 적을 때 강화해 두고 많아진 뒤 되돌려
+    // 차액을 버는 무한 증식이 생긴다.
+    public bool TryRefundSkill(SkillBase skill) {
+        int back = GetRefundAmount(skill);
+        if (back <= 0) return false;
+
+        int level = GetLevel(skill);
+        shards.Add(back);
+        paidShards[skill.SkillId][level - 1] = 0; // 같은 단계를 두 번 환불받지 못하게 지운다.
+        SetLevelInternal(skill, level - 1, notify: true);
+        return true;
+    }
+
+    void RecordPayment(SkillBase skill, int step, int cost) {
+        if (!paidShards.TryGetValue(skill.SkillId, out List<int> paid)) {
+            paid = new List<int>();
+            paidShards[skill.SkillId] = paid;
+        }
+
+        while (paid.Count <= step) paid.Add(0);
+        paid[step] = cost;
+    }
+
+    // 레벨을 실제로 적용하는 유일한 통로. 스킬 에셋의 runtimeLevel까지 같이 맞춰야
+    // 파생 스킬의 GetLevelData()가 새 수치를 읽는다.
+    void SetLevelInternal(SkillBase skill, int level, bool notify) {
+        if (skill == null) return;
+
+        int clamped = Mathf.Clamp(level, 0, skill.MaxLevel);
+        skillLevels[skill.SkillId] = clamped;
+        skill.runtimeLevel = clamped;
+
+        if (notify) onSkillLeveled?.Invoke(skill, clamped);
+    }
+
+    #endregion
     #region 조회
 
     public bool IsValidSlot(int slotIndex) {
@@ -263,6 +443,89 @@ public class SkillManager : MonoBehaviour {
         for (int i = 0; i < equippedSkills.Length; i++) {
             if (equippedSkills[i] != null) equippedSkills[i].ResetCooldown();
         }
+    }
+
+    #endregion
+    #region 세이브
+
+    public List<string> CaptureUnlocked() {
+        List<string> ids = new();
+        foreach (SkillBase skill in unlockedSkills) {
+            if (skill != null) ids.Add(skill.SkillId);
+        }
+        return ids;
+    }
+
+    // 빈 슬롯도 빈 문자열로 자리를 채운다. 건너뛰면 복원할 때 슬롯 번호가 앞으로 밀린다.
+    public List<string> CaptureEquipped() {
+        List<string> ids = new();
+        for (int i = 0; i < SlotCount; i++) {
+            ids.Add(equippedSkills[i] != null ? equippedSkills[i].SkillId : string.Empty);
+        }
+        return ids;
+    }
+
+    public List<SkillSaveEntry> CaptureLevels() {
+        List<SkillSaveEntry> entries = new();
+
+        foreach (SkillBase skill in EnumerateKnownSkills()) {
+            SkillSaveEntry entry = new() { id = skill.SkillId, level = GetLevel(skill) };
+            if (paidShards.TryGetValue(skill.SkillId, out List<int> paid)) entry.paid = new List<int>(paid);
+            entries.Add(entry);
+        }
+
+        return entries;
+    }
+
+    // 세이브에서 되돌린다. 각 목록은 **비어 있으면 건드리지 않는다** — 스킬 정보가 없던 구버전 세이브를
+    // 불러왔을 때 인스펙터로 맞춰둔 해금·장착 상태를 날려버리지 않기 위함이다(체력의 maxHealth == 0 규칙과 같은 방식).
+    public void RestoreState(List<string> unlockedIds, List<SkillSaveEntry> levels, List<string> equippedIds) {
+        Dictionary<string, SkillBase> byId = BuildIdLookup();
+
+        if (unlockedIds != null && unlockedIds.Count > 0) {
+            unlockedSkills.Clear();
+            foreach (string id in unlockedIds) {
+                if (byId.TryGetValue(id, out SkillBase skill)) {
+                    unlockedSkills.Add(skill);
+                }
+                else {
+                    Debug.LogWarning($"[SkillManager] 세이브의 스킬 id '{id}'에 해당하는 에셋을 찾지 못했습니다. " +
+                        "allSkills 목록에 그 스킬을 넣어 두세요.", this);
+                }
+            }
+        }
+
+        if (levels != null && levels.Count > 0) {
+            foreach (SkillSaveEntry entry in levels) {
+                if (entry == null || !byId.TryGetValue(entry.id, out SkillBase skill)) continue;
+
+                paidShards[entry.id] = entry.paid != null ? new List<int>(entry.paid) : new List<int>();
+                SetLevelInternal(skill, entry.level, notify: true);
+            }
+        }
+
+        if (equippedIds != null && equippedIds.Count > 0) {
+            for (int i = 0; i < SlotCount; i++) {
+                string id = i < equippedIds.Count ? equippedIds[i] : string.Empty;
+                SkillBase skill = null;
+                if (!string.IsNullOrEmpty(id)) byId.TryGetValue(id, out skill);
+
+                // EquipSkill()을 쓰지 않는다 — 해금 검사와 자리 맞바꾸기가 통째 복원과 충돌한다.
+                equippedSkills[i] = skill;
+                onSkillEquipped?.Invoke(i, skill);
+            }
+        }
+
+        // 불러온 직후부터 바로 쓸 수 있어야 한다. 저장 시점의 쿨타임까지 물고 오면 판이 답답해진다.
+        ResetAllCooldowns();
+    }
+
+    Dictionary<string, SkillBase> BuildIdLookup() {
+        Dictionary<string, SkillBase> byId = new();
+        foreach (SkillBase skill in EnumerateKnownSkills()) {
+            byId[skill.SkillId] = skill;
+        }
+        return byId;
     }
 
     #endregion

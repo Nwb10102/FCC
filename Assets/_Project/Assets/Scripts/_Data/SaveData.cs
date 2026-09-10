@@ -28,6 +28,25 @@ public class SaveData {
     public int memoryShardCount; // 보유한 기억 조각 수.
     public List<string> clearedDungeonIds = new List<string>(); // 뒷세계 등 1회성 몬스터 구역 중 이미 클리어한 dungeonId 목록.
     public List<NpcDialogueSaveEntry> npcDialogueCounts = new List<NpcDialogueSaveEntry>(); // NPC별로 지금까지 대화를 건 횟수.
+
+    public List<string> unlockedSkillIds = new List<string>(); // 스토리 진행으로 해금된 스킬 id.
+    public List<SkillSaveEntry> skillLevels = new List<SkillSaveEntry>(); // 스킬별 강화 레벨과 단계별 지불액.
+
+    // 슬롯 0·1·2에 장착된 스킬 id. 빈 슬롯은 빈 문자열로 자리를 채워 슬롯 번호가 밀리지 않게 한다.
+    public List<string> equippedSkillIds = new List<string>();
+}
+
+// 스킬 하나의 강화 상태. 스킬 에셋 자체를 직렬화하면 수치 테이블 같은 기획 데이터까지 세이브에
+// 굳어버리므로, 진행 상태만 떼어 저장한다 (ObjectiveSaveEntry와 같은 이유).
+[Serializable]
+public class SkillSaveEntry {
+    public string id;
+    public int level;
+
+    // 강화 단계별로 실제 지불한 조각 수(인덱스 = 단계). 환불이 "그때 낸 값"을 그대로 돌려주려면
+    // 반드시 남겨야 한다. 환불 시점의 보유량으로 다시 계산하면, 조각이 적을 때 강화해 두고 많을 때
+    // 되돌려 차액을 버는 무한 증식이 생긴다.
+    public List<int> paid = new List<int>();
 }
 
 // 목표 하나의 진행도. Objective 자체를 직렬화하면 description·targetCount 같은

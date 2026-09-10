@@ -179,7 +179,7 @@ public static class SkillLoadoutPrefabBuilder {
         window.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         window.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         window.rectTransform.anchoredPosition = Vector2.zero;
-        window.rectTransform.sizeDelta = new Vector2(920f, 720f);
+        window.rectTransform.sizeDelta = new Vector2(920f, 900f); // 강화 패널이 들어가면서 세로를 늘렸다.
 
         VerticalLayoutGroup layout = window.gameObject.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(44, 44, 36, 36);
@@ -206,11 +206,13 @@ public static class SkillLoadoutPrefabBuilder {
         description.textWrappingMode = TextWrappingModes.Normal;
         SetSize(description.rectTransform, -1f, 86f);
 
+        SkillLoadoutView view = rootObj.AddComponent<SkillLoadoutView>();
+        BuildUpgradePanel(window.transform, font, view);
+
         TextMeshProUGUI help = CreateText("Help", window.transform, font, BodyFontSize - 2f, TextAlignmentOptions.Center, DimTextColor);
-        help.text = "[↑↓] 스킬 선택    [1·2·3] 슬롯 선택    [Enter] 장착    [Del] 해제    [ESC] 닫기";
+        help.text = "[↑↓] 스킬 선택   [1·2·3] 슬롯   [Enter] 장착   [Del] 해제   [E] 강화   [R] 되돌리기   [ESC] 닫기";
         SetSize(help.rectTransform, -1f, 30f);
 
-        SkillLoadoutView view = rootObj.AddComponent<SkillLoadoutView>();
         view.windowRoot = dim.gameObject;
         view.slotViews = slots;
         view.rowContainer = listArea;
@@ -220,6 +222,71 @@ public static class SkillLoadoutPrefabBuilder {
 
         PrefabUtility.SaveAsPrefabAsset(rootObj, WindowPrefabPath);
         UnityEngine.Object.DestroyImmediate(rootObj);
+    }
+
+    // 강화 패널 — 레벨 표시 · 현재→다음 수치 비교표 · 비용 · 강화/되돌리기 버튼.
+    // 내용은 전부 SkillLoadoutView가 채우므로 여기서는 빈 칸과 자리만 잡아 둔다.
+    static void BuildUpgradePanel(Transform parent, TMP_FontAsset font, SkillLoadoutView view) {
+        RectTransform panel = CreateRect("UpgradePanel", parent);
+
+        VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 8f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        SetSize(panel, -1f, 196f);
+
+        TextMeshProUGUI level = CreateText("LevelLabel", panel, font, BodyFontSize + 3f, TextAlignmentOptions.Left, AccentColor);
+        level.text = "Lv 0 / 2";
+        level.fontStyle = FontStyles.Bold;
+        SetSize(level.rectTransform, -1f, 30f);
+
+        // 비교표는 줄바꿈되면 열이 어긋나 읽기 어려워지므로 접지 않는다.
+        TextMeshProUGUI stats = CreateText("StatsLabel", panel, font, BodyFontSize, TextAlignmentOptions.TopLeft, TextColor);
+        stats.textWrappingMode = TextWrappingModes.NoWrap;
+        SetSize(stats.rectTransform, -1f, 86f);
+
+        TextMeshProUGUI cost = CreateText("CostLabel", panel, font, BodyFontSize - 1f, TextAlignmentOptions.Left, AccentColor);
+        cost.text = "필요 3 (최소 3)   ·   보유 0";
+        SetSize(cost.rectTransform, -1f, 26f);
+
+        RectTransform buttonRow = CreateRect("ButtonRow", panel);
+        HorizontalLayoutGroup rowLayout = buttonRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 10f;
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = true;
+        rowLayout.childAlignment = TextAnchor.MiddleLeft;
+        SetSize(buttonRow, -1f, 44f);
+
+        // 되돌리기를 왼쪽·수수하게, 강화를 오른쪽·강조색으로 둔다. 조각을 쓰는 쪽이 주된 행동이기 때문.
+        Button refund = CreateButton("RefundButton", buttonRow, font, "되돌리기", RowColor, DimTextColor, 240f, out TextMeshProUGUI refundLabel);
+        Button upgrade = CreateButton("UpgradeButton", buttonRow, font, "강화", AccentColor, WindowColor, 200f, out TextMeshProUGUI upgradeLabel);
+
+        view.upgradePanelRoot = panel.gameObject;
+        view.levelLabel = level;
+        view.statsLabel = stats;
+        view.costLabel = cost;
+        view.upgradeButton = upgrade;
+        view.upgradeButtonLabel = upgradeLabel;
+        view.refundButton = refund;
+        view.refundButtonLabel = refundLabel;
+    }
+
+    static Button CreateButton(string name, Transform parent, TMP_FontAsset font, string text, Color background, Color textColor, float width, out TextMeshProUGUI label) {
+        Image image = CreateImage(name, parent, background);
+        SetSize(image.rectTransform, width, 44f);
+
+        Button button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image; // 색 전환은 Button 기본 동작에 맡긴다 — 슬롯·줄과 달리 상태가 단순하다.
+
+        label = CreateText("Label", image.transform, font, BodyFontSize, TextAlignmentOptions.Center, textColor);
+        Stretch(label.rectTransform);
+        label.text = text;
+
+        return button;
     }
 
     // 상단 장착 슬롯 3칸.
