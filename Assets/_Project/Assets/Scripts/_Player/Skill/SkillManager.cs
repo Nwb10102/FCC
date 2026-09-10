@@ -127,8 +127,13 @@ public class SkillManager : MonoBehaviour {
 
         if (control.wasReleasedThisFrame) {
             isAimingSlot[slotIndex] = false;
+
+            // ReleaseAim이 항상 발동으로 이어지는 건 아니다 — Invisible Reality처럼 좌클릭으로 이미 설치를
+            // 끝냈거나 아예 설치하지 않고 취소한 스킬은 이 시점에 TryUse가 호출되지 않는다.
+            // lastUsedTime이 실제로 갱신됐을 때만(=TryUse가 방금 실행됐을 때만) 발동 이벤트를 쏜다.
+            float beforeUse = skill.lastUsedTime;
             aimable.ReleaseAim(transform, GetMouseWorldPosition());
-            onSkillUsed?.Invoke(slotIndex, skill);
+            if (skill.lastUsedTime != beforeUse) onSkillUsed?.Invoke(slotIndex, skill);
         }
         else if (control.isPressed) {
             aimable.UpdateAim(transform, GetMouseWorldPosition());

@@ -16,7 +16,8 @@ public class Monster_Wraith : MonoBehaviour {
 
     [Header("레이어")]
     public LayerMask playerLayer; // 플레이어 레이어. **Player(3) 를 지정하세요.**
-    public LayerMask groundLayer; // 지형 레이어. 시야 차단과 텔레포트 위치 검사에 쓴다. **ground(31) 를 지정하세요.**
+    public LayerMask groundLayer; // 지형 레이어. 시야 차단과 텔레포트 위치 검사에 쓴다. **ground(31) 를 지정하세요.** 마임의 투명 벽(SkillWall)도 여기 포함시키면 시야 차단·텔레포트 회피가 그대로 적용된다.
+    public LayerMask obstacleLayer; // 발사한 투사체가 이 레이어에 닿으면 그 자리에서 사라진다. 기본값(0)이면 기존처럼 아무것도 막지 않는다. **투명 벽을 막으려면 SkillWall 레이어를 지정하세요.**
 
     [Header("순찰 (반투명)")]
     public float patrolRange = 2.5f; // 시작 위치를 중심으로 좌우 몇 유닛까지 오갈지.
@@ -309,7 +310,7 @@ public class Monster_Wraith : MonoBehaviour {
         SetStateSprite("Attack");
         Vector2 direction = ((Vector2)target.position - (Vector2)transform.position).normalized;
         SkillProjectile projectile = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
-        projectile.Launch(direction, playerLayer, projectileDamage, projectileSpeed, projectileLifetime, health, 1);
+        projectile.Launch(direction, playerLayer, projectileDamage, projectileSpeed, projectileLifetime, health, 1, obstacleLayer);
     }
 
     #endregion

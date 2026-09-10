@@ -7,22 +7,39 @@ using UnityEngine;
 // **에셋 생성: Create ▸ FCC ▸ Skill ▸ Broken Phantasm**
 [CreateAssetMenu(fileName = "Skill_BrokenPhantasm", menuName = "FCC/Skill/Broken Phantasm")]
 public class Skill_BrokenPhantasm : SkillBase, IAimableSkill {
+    #region 레벨 데이터
+
+    [System.Serializable]
+    public struct LevelData {
+        public int damage;
+        public float range; // 참고용 사거리 표시. Cycle of Fate와 동일하게 현재 로직에는 직접 쓰이지 않는다.
+        public float speed; // 투사체 속도. 기획서 수치(5~7 m/s)는 "즉시 박히는 느낌"이 사라질 만큼 느려 대신 기존 게임 감각을 유지하는 자체 값을 쓴다.
+        public int pierceCount; // 이 칼이 관통 가능한 대상 수.
+    }
+
+    #endregion
     #region 인스펙터 변수
+
+    [Header("레벨")]
+    [Range(0, 2)]
+    public int level = 0; // 0: 기본, 1: 데미지·사거리 증가, 2: 데미지 최대치 + 2체 관통.
+
+    // 인덱스 = 레벨. 데미지·관통은 기획서 수치(30/42/60, Lv2 2체 관통) 그대로, speed는 기존 게임 감각 유지용 자체 값.
+    public LevelData[] levels = {
+        new() { damage = 30, range = 30f, speed = 60f, pierceCount = 1 },
+        new() { damage = 42, range = 50f, speed = 72f, pierceCount = 1 },
+        new() { damage = 60, range = 50f, speed = 84f, pierceCount = 2 },
+    };
 
     [Header("투사체")]
     public SkillProjectile projectilePrefab; // **Kinematic Rigidbody2D + Is Trigger 콜라이더가 붙은 프리팹을 연결하세요.**
     public LayerMask targetLayer; // 칼이 맞는 대상. **몬스터 레이어를 지정하세요.**
-    public float projectileSpeed = 60f; // 거의 즉시 박히는 느낌을 위해 매우 빠르게 잡았다.
     public float projectileLifetime = 0.5f; // 아무것도 못 맞히고 사라지기까지의 시간(벽에 닿으면 이 시간 전에도 바로 사라진다).
-    public int pierceCount = 1; // 칼 한 자루가 맞힐 수 있는 대상 수. 1이면 첫 대상만 맞고 소멸.
     public LayerMask obstacleLayer = 1 << 31; // 이 레이어에 닿으면 그 자리에서 사라진다. **벽·바닥(ground) 레이어를 지정하세요.**
 
     [Header("발사 형태")]
     public int knifeCount = 1; // 한 번에 던지는 칼 개수. 2개 이상이면 부채꼴로 퍼진다.
     public float spreadAngle = 15f; // 칼 사이의 각도 간격(도).
-
-    [Header("피해")]
-    public int damage = 15;
 
     [Header("발사 위치")]
     public float forwardOffset = 0.6f; // 조준 방향으로 밀어낼 거리.
@@ -86,6 +103,7 @@ public class Skill_BrokenPhantasm : SkillBase, IAimableSkill {
             return;
         }
 
+        LevelData data = GetLevelData();
         Vector2 origin = (Vector2)owner.position + aimDirection * forwardOffset + Vector2.up * heightOffset;
         Health ownerHealth = owner.GetComponentInParent<Health>();
 
@@ -98,8 +116,13 @@ public class Skill_BrokenPhantasm : SkillBase, IAimableSkill {
             Vector2 direction = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
 
             SkillProjectile projectile = Instantiate(projectilePrefab, origin, Quaternion.identity);
-            projectile.Launch(direction, targetLayer, damage, projectileSpeed, projectileLifetime, ownerHealth, pierceCount, obstacleLayer);
+            projectile.Launch(direction, targetLayer, data.damage, data.speed, projectileLifetime, ownerHealth, data.pierceCount, obstacleLayer);
         }
+    }
+
+    LevelData GetLevelData() {
+        int index = Mathf.Clamp(level, 0, levels.Length - 1);
+        return levels[index];
     }
 
     #endregion
