@@ -27,6 +27,9 @@ public class Player_move : MonoBehaviour
     float dashCooldownTimer; // 남은 대시 쿨타임.
     float dashDirection; // 대시 시작 시점의 좌우 방향(+1/-1)을 고정해, 도중에 방향키를 바꿔도 궤적이 흔들리지 않게 한다.
 
+    // 대시 잔상(Player_DashAfterimage) 같은 외부 연출이 대시 구간을 알 수 있도록 노출한다.
+    public bool IsDashing => dashTimer > 0f;
+
     private float koyoteTime = 0.2f; // 고요테 타임 설정
     private float koyoteTimeCounter; // 고요테 타임 카운터
 

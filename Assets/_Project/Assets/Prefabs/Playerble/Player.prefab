@@ -250,6 +250,7 @@ GameObject:
   - component: {fileID: 2981627125239114588}
   - component: {fileID: 24005028119109974}
   - component: {fileID: 905950734729212233}
+  - component: {fileID: 7700200}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -446,6 +447,25 @@ MonoBehaviour:
   coyoteCounter: 0
   jumpBufferDuration: 0.15
   isMovementLocked: 0
+--- !u!114 &7700200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8576524948119994719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Player_DashAfterimage
+  move: {fileID: 5257393384591696402}
+  sourceRenderer: {fileID: 3247068648499483280}
+  ghostsPerDash: 5
+  ghostLifetime: 0.28
+  ghostTint: {r: 0.55, g: 0.75, b: 1, a: 0.5}
+  sortingOrderOffset: -1
+  ghostMaterial: {fileID: 0}
 --- !u!114 &4156485253510472793
 MonoBehaviour:
   m_ObjectHideFlags: 0
